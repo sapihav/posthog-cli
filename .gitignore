@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.posthog.json
+*.js.map

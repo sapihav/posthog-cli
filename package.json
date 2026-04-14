@@ -1,0 +1,25 @@
+{
+  "name": "poshog-cli",
+  "version": "0.1.0",
+  "description": "PostHog CLI — manage PostHog projects from the terminal (replaces MCP for AI agents)",
+  "bin": {
+    "posthog": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "chalk": "^5.0.0",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}
