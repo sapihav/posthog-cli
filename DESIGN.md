@@ -1,7 +1,7 @@
 # PostHog CLI (`posthog`) — Design Document
 
 ## Context
-PostHog provides a web UI, SDK, API, and MCP server but no proper CLI. The existing official `@posthog/cli` (Rust) is very limited (login, query, sourcemap only). The PostHog MCP has proven unreliable/awkward for AI agents like Claude Code. Goal: a TypeScript/Node.js CLI (`posthog`) that Claude Code can invoke via bash to manage PostHog projects — JSON output by default, core operations only.
+PostHog provides a web UI, SDK, API, and MCP server but no proper CLI. The existing official `@posthog/cli` (Rust) is very limited (login, query, sourcemap only). MCPs in general are not a good fit for AI agent tooling — terminal CLI tools are more predictable, composable, and debuggable for agents like Claude Code. Goal: a TypeScript/Node.js CLI (`posthog`) that Claude Code can invoke via bash to manage PostHog projects — JSON output by default, core operations only.
 
 ---
 
