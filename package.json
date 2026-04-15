@@ -1,16 +1,33 @@
 {
-  "name": "poshog-cli",
+  "name": "posthog-cli",
   "version": "0.1.0",
-  "description": "PostHog CLI — manage PostHog projects from the terminal (replaces MCP for AI agents)",
+  "description": "PostHog CLI — manage PostHog projects from the terminal",
+  "author": "sapihav",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sapihav/poshog-cli.git"
+  },
+  "keywords": [
+    "posthog",
+    "cli",
+    "analytics",
+    "feature-flags",
+    "experiments"
+  ],
   "bin": {
     "posthog": "./dist/index.js"
   },
+  "files": [
+    "dist/**/*.js"
+  ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "test": "tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "chalk": "^5.0.0",
     "commander": "^12.0.0"
   },
   "devDependencies": {
@@ -19,7 +36,6 @@
     "typescript": "^5.0.0"
   },
   "engines": {
-    "node": ">=22"
-  },
-  "license": "MIT"
+    "node": ">=18"
+  }
 }
