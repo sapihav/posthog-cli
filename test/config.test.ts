@@ -4,18 +4,24 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 
-// We need to test config with isolated filesystem, so we'll import dynamically
-// after setting up env vars. But for loadConfig/requireConfig we can test the
-// env-var priority path directly.
-
 let tmpDir: string;
+const globalConfigPath = path.join(os.homedir(), ".config", "posthog", "config.json");
+const globalConfigBackup = globalConfigPath + ".test-backup";
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "posthog-test-"));
+  // Temporarily hide real config so tests run in isolation
+  if (fs.existsSync(globalConfigPath)) {
+    fs.renameSync(globalConfigPath, globalConfigBackup);
+  }
 });
 
 afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
+  // Restore real config
+  if (fs.existsSync(globalConfigBackup)) {
+    fs.renameSync(globalConfigBackup, globalConfigPath);
+  }
   delete process.env.POSTHOG_API_KEY;
   delete process.env.POSTHOG_PROJECT_ID;
   delete process.env.POSTHOG_HOST;
@@ -23,7 +29,6 @@ afterEach(() => {
 
 describe("config", () => {
   it("loadConfig returns defaults when nothing is set", async () => {
-    // Clear env vars
     delete process.env.POSTHOG_API_KEY;
     delete process.env.POSTHOG_PROJECT_ID;
     delete process.env.POSTHOG_HOST;
@@ -86,7 +91,6 @@ describe("config", () => {
     const configDir = path.join(tmpDir, ".config", "posthog");
     const configPath = path.join(configDir, "config.json");
 
-    // Manually test the write/read cycle
     fs.mkdirSync(configDir, { recursive: true });
     const data = { apiKey: "phx_saved", projectId: "999", host: "https://us.posthog.com" };
     fs.writeFileSync(configPath, JSON.stringify(data, null, 2) + "\n");
