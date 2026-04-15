@@ -7,15 +7,17 @@ import { registerExperimentsCommand } from "./commands/experiments.js";
 import { registerInsightsCommand } from "./commands/insights.js";
 import { registerDashboardsCommand } from "./commands/dashboards.js";
 import { registerQueryCommand } from "./commands/query.js";
+import { registerLoginCommand } from "./commands/login.js";
 
 const program = new Command();
 
 program
   .name("posthog")
   .description("PostHog CLI — manage PostHog projects from the terminal")
-  .version("0.1.0")
+  .version("0.1.1")
   .option("--pretty", "Pretty-print JSON output");
 
+registerLoginCommand(program);
 registerConfigCommand(program);
 registerFlagsCommand(program);
 registerExperimentsCommand(program);

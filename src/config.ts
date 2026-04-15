@@ -14,7 +14,7 @@ const ALLOWED_HOSTS = new Set([
   "https://eu.posthog.com",
 ]);
 const GLOBAL_CONFIG_DIR = path.join(os.homedir(), ".config", "posthog");
-const GLOBAL_CONFIG_PATH = path.join(GLOBAL_CONFIG_DIR, "config.json");
+export const GLOBAL_CONFIG_PATH = path.join(GLOBAL_CONFIG_DIR, "config.json");
 const LOCAL_CONFIG_NAME = ".posthog.json";
 
 function readJsonFile(filePath: string): Partial<Config> {
