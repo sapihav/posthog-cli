@@ -94,36 +94,44 @@ export async function fetchProjects(
   host: string,
   apiKey: string
 ): Promise<Project[]> {
-  const orgsRes = await fetch(`${host}/api/organizations/`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  const headers = { Authorization: `Bearer ${apiKey}` };
 
-  if (!orgsRes.ok) {
-    const text = await orgsRes.text().catch(() => "");
-    throw new Error(
-      `Failed to fetch organizations (${orgsRes.status}): ${text}`
-    );
-  }
+  // Try org-level endpoint first (works with "All access" / "Organizations" keys)
+  const orgsRes = await fetch(`${host}/api/organizations/`, { headers });
 
-  const orgsData = (await orgsRes.json()) as { results: Organization[] };
-  const projects: Project[] = [];
+  if (orgsRes.ok) {
+    const orgsData = (await orgsRes.json()) as { results: Organization[] };
+    const projects: Project[] = [];
 
-  for (const org of orgsData.results) {
-    const projRes = await fetch(
-      `${host}/api/organizations/${org.id}/projects/`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
-    );
-    if (!projRes.ok) {
-      const text = await projRes.text().catch(() => "");
-      throw new Error(
-        `Failed to fetch projects for org "${org.name}" (${projRes.status}): ${text}`
+    for (const org of orgsData.results) {
+      const projRes = await fetch(
+        `${host}/api/organizations/${org.id}/projects/`,
+        { headers }
       );
+      if (!projRes.ok) {
+        const text = await projRes.text().catch(() => "");
+        throw new Error(
+          `Failed to fetch projects for org "${org.name}" (${projRes.status}): ${text}`
+        );
+      }
+      const projData = (await projRes.json()) as { results: Project[] };
+      projects.push(...projData.results);
     }
-    const projData = (await projRes.json()) as { results: Project[] };
-    projects.push(...projData.results);
+
+    return projects;
   }
 
-  return projects;
+  // Fall back to project-scoped endpoint (works with project-scoped keys)
+  const projRes = await fetch(`${host}/api/projects/`, { headers });
+  if (!projRes.ok) {
+    const text = await projRes.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch projects (${projRes.status}): ${text}`
+    );
+  }
+
+  const projData = (await projRes.json()) as { results: Project[] };
+  return projData.results;
 }
 
 export function registerLoginCommand(program: Command): void {
