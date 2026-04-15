@@ -109,37 +109,12 @@ describe("login", () => {
       assert.equal(capturedHeaders["Authorization"], "Bearer phx_my_key");
     });
 
-    it("falls back to /api/projects/ when orgs returns 403", async () => {
-      const calls: string[] = [];
-      globalThis.fetch = async (input: string | URL | Request) => {
-        const url = input.toString();
-        calls.push(url);
-        if (url.endsWith("/api/organizations/")) {
-          return mockResponse(403, { detail: "permission_denied" });
-        }
-        if (url.endsWith("/api/projects/")) {
-          return mockResponse(200, {
-            results: [{ id: 42, name: "Scoped Project" }],
-          });
-        }
-        return mockResponse(404);
-      };
-
-      const projects = await fetchProjects("https://us.posthog.com", "phx_scoped");
-      assert.equal(projects.length, 1);
-      assert.equal(projects[0].name, "Scoped Project");
-      assert.equal(calls.length, 2);
-      assert.match(calls[1], /\/api\/projects\/$/);
-    });
-
-    it("throws when both org and project endpoints fail", async () => {
+    it("returns null when orgs returns 403 (project-scoped key)", async () => {
       globalThis.fetch = async () =>
-        mockResponse(401, { detail: "Invalid token" });
+        mockResponse(403, { detail: "permission_denied" });
 
-      await assert.rejects(
-        () => fetchProjects("https://us.posthog.com", "phx_bad"),
-        { message: /Failed to fetch projects \(401\)/ }
-      );
+      const result = await fetchProjects("https://us.posthog.com", "phx_scoped");
+      assert.equal(result, null);
     });
 
     it("throws on project fetch failure", async () => {

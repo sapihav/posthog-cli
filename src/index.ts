@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name("posthog")
   .description("PostHog CLI — manage PostHog projects from the terminal")
-  .version("0.1.2")
+  .version("0.1.3")
   .option("--pretty", "Pretty-print JSON output");
 
 registerLoginCommand(program);

@@ -93,7 +93,7 @@ interface Organization {
 export async function fetchProjects(
   host: string,
   apiKey: string
-): Promise<Project[]> {
+): Promise<Project[] | null> {
   const headers = { Authorization: `Bearer ${apiKey}` };
 
   // Try org-level endpoint first (works with "All access" / "Organizations" keys)
@@ -121,17 +121,8 @@ export async function fetchProjects(
     return projects;
   }
 
-  // Fall back to project-scoped endpoint (works with project-scoped keys)
-  const projRes = await fetch(`${host}/api/projects/`, { headers });
-  if (!projRes.ok) {
-    const text = await projRes.text().catch(() => "");
-    throw new Error(
-      `Failed to fetch projects (${projRes.status}): ${text}`
-    );
-  }
-
-  const projData = (await projRes.json()) as { results: Project[] };
-  return projData.results;
+  // Project-scoped keys can't list projects — return null to signal manual input needed
+  return null;
 }
 
 export function registerLoginCommand(program: Command): void {
@@ -168,12 +159,18 @@ export function registerLoginCommand(program: Command): void {
         log("  Fetching your projects...");
         const projects = await fetchProjects(host, apiKey);
 
-        if (projects.length === 0) {
-          outputError("No projects found for this API key.");
-        }
-
         let projectId: string;
-        if (projects.length === 1) {
+        if (projects === null) {
+          // Project-scoped key — can't list projects, ask manually
+          log("  Project-scoped API key detected — cannot list projects.");
+          log(`  Find your project ID at: ${host}/settings/project#variables`);
+          projectId = await prompt("  Enter your project ID: ");
+          if (!projectId || !/^\d+$/.test(projectId)) {
+            outputError("Invalid project ID. Must be a number.");
+          }
+        } else if (projects.length === 0) {
+          outputError("No projects found for this API key.");
+        } else if (projects.length === 1) {
           log(`  Using project: ${projects[0].name} (${projects[0].id})`);
           projectId = String(projects[0].id);
         } else {
