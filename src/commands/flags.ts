@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { requireConfig } from "../config.js";
 import { PostHogClient } from "../client.js";
-import { outputJson, outputError } from "../output.js";
+import { outputJson, outputError, getOutputOptions } from "../output.js";
 
 interface Flag {
   id: number;
@@ -30,7 +30,7 @@ async function resolveFlag(client: PostHogClient, keyOrId: string): Promise<Flag
 
 export function registerFlagsCommand(program: Command): void {
   const cmd = program.command("flags").description("Manage feature flags");
-  const pretty = () => program.opts().pretty;
+  const out = () => getOutputOptions(program);
 
   cmd
     .command("list")
@@ -49,7 +49,7 @@ export function registerFlagsCommand(program: Command): void {
           : await client.list<Flag>("feature_flags/", params);
 
         const result = opts.active ? flags.filter((f) => f.active) : flags;
-        outputJson(result, pretty());
+        outputJson(result, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -61,7 +61,7 @@ export function registerFlagsCommand(program: Command): void {
     .action(async (keyOrId: string) => {
       try {
         const flag = await resolveFlag(getClient(), keyOrId);
-        outputJson(flag, pretty());
+        outputJson(flag, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -90,7 +90,7 @@ export function registerFlagsCommand(program: Command): void {
           },
           active: rollout > 0,
         });
-        outputJson(flag, pretty());
+        outputJson(flag, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -120,7 +120,7 @@ export function registerFlagsCommand(program: Command): void {
           };
         }
         const updated = await client.update<Flag>("feature_flags/", flag.id, body);
-        outputJson(updated, pretty());
+        outputJson(updated, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -136,7 +136,7 @@ export function registerFlagsCommand(program: Command): void {
         const updated = await client.update<Flag>("feature_flags/", flag.id, {
           active: true,
         });
-        outputJson(updated, pretty());
+        outputJson(updated, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -152,7 +152,7 @@ export function registerFlagsCommand(program: Command): void {
         const updated = await client.update<Flag>("feature_flags/", flag.id, {
           active: false,
         });
-        outputJson(updated, pretty());
+        outputJson(updated, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -166,7 +166,7 @@ export function registerFlagsCommand(program: Command): void {
         const client = getClient();
         const flag = await resolveFlag(client, keyOrId);
         await client.delete("feature_flags/", flag.id);
-        outputJson({ deleted: true, key: flag.key, id: flag.id }, pretty());
+        outputJson({ deleted: true, key: flag.key, id: flag.id }, out());
       } catch (e) {
         outputError((e as Error).message);
       }

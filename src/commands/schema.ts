@@ -9,7 +9,7 @@
  */
 
 import { Command, Option } from "commander";
-import { outputJson, outputError } from "../output.js";
+import { outputJson, outputError, getOutputOptions } from "../output.js";
 
 export interface OptionSchema {
   flags: string;
@@ -259,15 +259,26 @@ export function maybeEmitJsonHelp(program: Command, argv: string[]): void {
   if (!(wantsHelp && wantsJson)) return;
 
   const pretty = argv.includes("--pretty");
-  // Strip flags to find the command path (e.g. ["flags", "list"]).
-  const positional = argv.filter((a) => !a.startsWith("-"));
+  const fieldsIdx = argv.indexOf("--fields");
+  const fields = fieldsIdx >= 0 ? argv[fieldsIdx + 1] : undefined;
+  // Strip flags (and their values) to find the command path (e.g. ["flags", "list"]).
+  const positional: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith("-")) {
+      // Skip the value of --fields (the only global option that takes a value pre-parse).
+      if (a === "--fields") i++;
+      continue;
+    }
+    positional.push(a);
+  }
   const target = positional.length === 0 ? null : findCommand(program, positional);
 
   try {
     if (!target) {
-      outputJson(serializeProgram(program), pretty);
+      outputJson(serializeProgram(program), { pretty, fields });
     } else {
-      outputJson(serializeCommand(target), pretty);
+      outputJson(serializeCommand(target), { pretty, fields });
     }
     process.exit(0);
   } catch (e) {
@@ -281,7 +292,7 @@ export function registerSchemaCommand(program: Command): void {
     .description("Emit the full CLI schema as JSON (commands, options, output shapes)")
     .action(() => {
       try {
-        outputJson(serializeProgram(program), program.opts().pretty);
+        outputJson(serializeProgram(program), getOutputOptions(program));
       } catch (e) {
         outputError((e as Error).message);
       }

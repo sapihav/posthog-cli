@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { requireConfig } from "../config.js";
 import { PostHogClient } from "../client.js";
-import { outputJson, outputError } from "../output.js";
+import { outputJson, outputError, getOutputOptions } from "../output.js";
 
 interface Dashboard {
   id: number;
@@ -15,7 +15,7 @@ function getClient(): PostHogClient {
 
 export function registerDashboardsCommand(program: Command): void {
   const cmd = program.command("dashboards").description("View dashboards");
-  const pretty = () => program.opts().pretty;
+  const out = () => getOutputOptions(program);
 
   cmd
     .command("list")
@@ -27,7 +27,7 @@ export function registerDashboardsCommand(program: Command): void {
         const dashboards = opts.all
           ? await client.listAll<Dashboard>("dashboards/", undefined, true)
           : await client.list<Dashboard>("dashboards/", undefined, true);
-        outputJson(dashboards, pretty());
+        outputJson(dashboards, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -39,7 +39,7 @@ export function registerDashboardsCommand(program: Command): void {
     .action(async (id: string) => {
       try {
         const dashboard = await getClient().get<Dashboard>("dashboards/", id, true);
-        outputJson(dashboard, pretty());
+        outputJson(dashboard, out());
       } catch (e) {
         outputError((e as Error).message);
       }

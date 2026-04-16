@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { createInterface } from "node:readline";
 import { execFile } from "node:child_process";
 import { saveGlobalConfig, GLOBAL_CONFIG_PATH } from "../config.js";
-import { outputJson, outputError } from "../output.js";
+import { outputJson, outputError, getOutputOptions } from "../output.js";
 
 export const HOSTS: Record<string, string> = {
   "1": "https://us.posthog.com",
@@ -199,7 +199,7 @@ export function registerLoginCommand(program: Command): void {
             apiKey:
               saved.apiKey.slice(0, 7) + "..." + saved.apiKey.slice(-4),
           },
-          program.opts().pretty
+          getOutputOptions(program)
         );
       } catch (e) {
         outputError((e as Error).message);
