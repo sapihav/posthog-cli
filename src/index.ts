@@ -25,6 +25,10 @@ program
     "--fields <list>",
     "Comma-separated list of fields to keep in object outputs (e.g. --fields key,active)"
   )
+  .option(
+    "--dry-run",
+    "For mutating commands: print the planned API request as JSON and exit without sending it"
+  )
   .addHelpText(
     "after",
     "\nFor agent/tooling use, run `posthog schema` or append `--help --json` to any command\nfor a machine-readable description of the CLI surface."

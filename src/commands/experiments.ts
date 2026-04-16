@@ -1,6 +1,5 @@
 import { Command } from "commander";
-import { requireConfig } from "../config.js";
-import { PostHogClient } from "../client.js";
+import { clientFor } from "../client.js";
 import { outputJson, outputError, getOutputOptions } from "../output.js";
 
 interface Experiment {
@@ -11,13 +10,10 @@ interface Experiment {
   [key: string]: unknown;
 }
 
-function getClient(): PostHogClient {
-  return new PostHogClient(requireConfig());
-}
-
 export function registerExperimentsCommand(program: Command): void {
   const cmd = program.command("experiments").description("Manage experiments");
   const out = () => getOutputOptions(program);
+  const getClient = () => clientFor(program);
 
   cmd
     .command("list")
@@ -35,7 +31,7 @@ export function registerExperimentsCommand(program: Command): void {
           : await client.list<Experiment>("experiments/", params);
         outputJson(experiments, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -47,7 +43,7 @@ export function registerExperimentsCommand(program: Command): void {
         const exp = await getClient().get<Experiment>("experiments/", id);
         outputJson(exp, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -61,7 +57,7 @@ export function registerExperimentsCommand(program: Command): void {
         const results = await client.get<unknown>("experiments/", `${id}/results`);
         outputJson(results, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -70,12 +66,12 @@ export function registerExperimentsCommand(program: Command): void {
     .description("Launch a draft experiment")
     .action(async (id: string) => {
       try {
-        const updated = await getClient().update<Experiment>("experiments/", id, {
+        const result = await getClient().update<Experiment>("experiments/", id, {
           start_date: new Date().toISOString(),
         });
-        outputJson(updated, out());
+        outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -84,12 +80,12 @@ export function registerExperimentsCommand(program: Command): void {
     .description("Pause a running experiment")
     .action(async (id: string) => {
       try {
-        const updated = await getClient().update<Experiment>("experiments/", id, {
+        const result = await getClient().update<Experiment>("experiments/", id, {
           end_date: new Date().toISOString(),
         });
-        outputJson(updated, out());
+        outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -98,12 +94,12 @@ export function registerExperimentsCommand(program: Command): void {
     .description("End an experiment")
     .action(async (id: string) => {
       try {
-        const updated = await getClient().update<Experiment>("experiments/", id, {
+        const result = await getClient().update<Experiment>("experiments/", id, {
           end_date: new Date().toISOString(),
         });
-        outputJson(updated, out());
+        outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 }

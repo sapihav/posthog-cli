@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { PostHogClient } from "../src/client.js";
+import { PostHogError } from "../src/errors.js";
 import type { Config } from "../src/config.js";
 
 const TEST_CONFIG: Config = {
@@ -149,7 +150,7 @@ describe("PostHogClient", () => {
     assert.equal(capturedMethod, "DELETE");
   });
 
-  it("throws on non-ok response", async () => {
+  it("throws PostHogError with NOT_FOUND code on 404", async () => {
     globalThis.fetch = async () =>
       mockResponse(404, { detail: "Not found" });
 
@@ -157,7 +158,62 @@ describe("PostHogClient", () => {
 
     await assert.rejects(
       () => client.get("feature_flags/", 999),
-      { message: /API 404: Not found/ }
+      (err: unknown) => {
+        assert.ok(err instanceof PostHogError);
+        assert.equal(err.code, "NOT_FOUND");
+        assert.equal(err.status, 404);
+        assert.match(err.message, /Not found/);
+        return true;
+      }
+    );
+  });
+
+  it("throws PostHogError with AUTH_INVALID code on 401", async () => {
+    globalThis.fetch = async () =>
+      mockResponse(401, { detail: "Invalid API key" });
+
+    const client = new PostHogClient(TEST_CONFIG);
+
+    await assert.rejects(
+      () => client.list("feature_flags/"),
+      (err: unknown) => {
+        assert.ok(err instanceof PostHogError);
+        assert.equal(err.code, "AUTH_INVALID");
+        assert.match(err.hint ?? "", /posthog login/);
+        return true;
+      }
+    );
+  });
+
+  it("throws PostHogError with VALIDATION code on 400", async () => {
+    globalThis.fetch = async () =>
+      mockResponse(400, { detail: "Bad request" });
+
+    const client = new PostHogClient(TEST_CONFIG);
+
+    await assert.rejects(
+      () => client.list("feature_flags/"),
+      (err: unknown) => {
+        assert.ok(err instanceof PostHogError);
+        assert.equal(err.code, "VALIDATION");
+        return true;
+      }
+    );
+  });
+
+  it("throws PostHogError with API_ERROR code on 500", async () => {
+    globalThis.fetch = async () =>
+      mockResponse(500, { detail: "Server boom" });
+
+    const client = new PostHogClient(TEST_CONFIG);
+
+    await assert.rejects(
+      () => client.list("feature_flags/"),
+      (err: unknown) => {
+        assert.ok(err instanceof PostHogError);
+        assert.equal(err.code, "API_ERROR");
+        return true;
+      }
     );
   });
 
@@ -245,5 +301,75 @@ describe("PostHogClient", () => {
 
     assert.match(capturedUrl, /search=test/);
     assert.match(capturedUrl, /limit=50/);
+  });
+});
+
+describe("PostHogClient dryRun", () => {
+  let originalFetch: typeof globalThis.fetch;
+  let fetchCalled: boolean;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    fetchCalled = false;
+    globalThis.fetch = async () => {
+      fetchCalled = true;
+      throw new Error("network call should not happen in dry-run");
+    };
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("create returns a PlannedRequest and skips fetch", async () => {
+    const client = new PostHogClient(TEST_CONFIG, { dryRun: true });
+    const result = await client.create("feature_flags/", { key: "x", name: "X" });
+
+    assert.equal(fetchCalled, false);
+    assert.deepEqual(result, {
+      dryRun: true,
+      method: "POST",
+      url: "https://us.posthog.com/api/projects/12345/feature_flags/",
+      body: { key: "x", name: "X" },
+    });
+  });
+
+  it("update returns a PlannedRequest and skips fetch", async () => {
+    const client = new PostHogClient(TEST_CONFIG, { dryRun: true });
+    const result = await client.update("feature_flags/", 42, { active: true });
+
+    assert.equal(fetchCalled, false);
+    assert.deepEqual(result, {
+      dryRun: true,
+      method: "PATCH",
+      url: "https://us.posthog.com/api/projects/12345/feature_flags/42/",
+      body: { active: true },
+    });
+  });
+
+  it("delete returns a PlannedRequest and skips fetch", async () => {
+    const client = new PostHogClient(TEST_CONFIG, { dryRun: true });
+    const result = await client.delete("feature_flags/", 99);
+
+    assert.equal(fetchCalled, false);
+    assert.deepEqual(result, {
+      dryRun: true,
+      method: "DELETE",
+      url: "https://us.posthog.com/api/projects/12345/feature_flags/99/",
+      body: undefined,
+    });
+  });
+
+  it("list still fetches in dry-run (read-only)", async () => {
+    let listFetchCalled = false;
+    globalThis.fetch = async () => {
+      listFetchCalled = true;
+      return mockResponse(200, { results: [] });
+    };
+
+    const client = new PostHogClient(TEST_CONFIG, { dryRun: true });
+    await client.list("feature_flags/");
+
+    assert.equal(listFetchCalled, true);
   });
 });

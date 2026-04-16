@@ -138,7 +138,7 @@ export function registerLoginCommand(program: Command): void {
         log("    [2] EU (eu.posthog.com)");
         const region = await prompt("  Select (1/2): ");
         const host = HOSTS[region];
-        if (!host) outputError("Invalid selection. Choose 1 or 2.");
+        if (!host) outputError({ message: "Invalid selection. Choose 1 or 2.", code: "VALIDATION" });
 
         // 2. Open browser to API key page
         const keyUrl = `${host}/settings/user-api-keys`;
@@ -151,7 +151,11 @@ export function registerLoginCommand(program: Command): void {
         log("");
         const apiKey = await promptSecret("  Paste your API key: ");
         if (!apiKey || !apiKey.startsWith("phx_")) {
-          outputError("Invalid API key. Must start with phx_");
+          outputError({
+            message: "Invalid API key. Must start with phx_",
+            code: "VALIDATION",
+            hint: "Create a personal API key at the URL above and paste the full token.",
+          });
         }
 
         // 4. Fetch and select project
@@ -166,10 +170,14 @@ export function registerLoginCommand(program: Command): void {
           log(`  Find your project ID at: ${host}/settings/project#variables`);
           projectId = await prompt("  Enter your project ID: ");
           if (!projectId || !/^\d+$/.test(projectId)) {
-            outputError("Invalid project ID. Must be a number.");
+            outputError({ message: "Invalid project ID. Must be a number.", code: "VALIDATION" });
           }
         } else if (projects.length === 0) {
-          outputError("No projects found for this API key.");
+          outputError({
+            message: "No projects found for this API key.",
+            code: "NOT_FOUND",
+            hint: "Make sure your API key is associated with at least one organization/project.",
+          });
         } else if (projects.length === 1) {
           log(`  Using project: ${projects[0].name} (${projects[0].id})`);
           projectId = String(projects[0].id);
@@ -182,7 +190,7 @@ export function registerLoginCommand(program: Command): void {
           const choice = await prompt("  Select project: ");
           const idx = parseInt(choice, 10) - 1;
           if (isNaN(idx) || idx < 0 || idx >= projects.length) {
-            outputError("Invalid selection.");
+            outputError({ message: "Invalid selection.", code: "VALIDATION" });
           }
           projectId = String(projects[idx].id);
         }
@@ -202,7 +210,7 @@ export function registerLoginCommand(program: Command): void {
           getOutputOptions(program)
         );
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 }
