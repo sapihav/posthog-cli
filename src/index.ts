@@ -21,6 +21,10 @@ program
   .version("0.1.4")
   .option("--pretty", "Pretty-print JSON output")
   .option("--json", "Emit machine-readable JSON (use with --help to print the schema)")
+  .option(
+    "--fields <list>",
+    "Comma-separated list of fields to keep in object outputs (e.g. --fields key,active)"
+  )
   .addHelpText(
     "after",
     "\nFor agent/tooling use, run `posthog schema` or append `--help --json` to any command\nfor a machine-readable description of the CLI surface."

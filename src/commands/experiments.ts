@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { requireConfig } from "../config.js";
 import { PostHogClient } from "../client.js";
-import { outputJson, outputError } from "../output.js";
+import { outputJson, outputError, getOutputOptions } from "../output.js";
 
 interface Experiment {
   id: number;
@@ -17,7 +17,7 @@ function getClient(): PostHogClient {
 
 export function registerExperimentsCommand(program: Command): void {
   const cmd = program.command("experiments").description("Manage experiments");
-  const pretty = () => program.opts().pretty;
+  const out = () => getOutputOptions(program);
 
   cmd
     .command("list")
@@ -33,7 +33,7 @@ export function registerExperimentsCommand(program: Command): void {
         const experiments = opts.all
           ? await client.listAll<Experiment>("experiments/", params)
           : await client.list<Experiment>("experiments/", params);
-        outputJson(experiments, pretty());
+        outputJson(experiments, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -45,7 +45,7 @@ export function registerExperimentsCommand(program: Command): void {
     .action(async (id: string) => {
       try {
         const exp = await getClient().get<Experiment>("experiments/", id);
-        outputJson(exp, pretty());
+        outputJson(exp, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -59,7 +59,7 @@ export function registerExperimentsCommand(program: Command): void {
         const client = getClient();
         // Results is a sub-resource
         const results = await client.get<unknown>("experiments/", `${id}/results`);
-        outputJson(results, pretty());
+        outputJson(results, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -73,7 +73,7 @@ export function registerExperimentsCommand(program: Command): void {
         const updated = await getClient().update<Experiment>("experiments/", id, {
           start_date: new Date().toISOString(),
         });
-        outputJson(updated, pretty());
+        outputJson(updated, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -87,7 +87,7 @@ export function registerExperimentsCommand(program: Command): void {
         const updated = await getClient().update<Experiment>("experiments/", id, {
           end_date: new Date().toISOString(),
         });
-        outputJson(updated, pretty());
+        outputJson(updated, out());
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -101,7 +101,7 @@ export function registerExperimentsCommand(program: Command): void {
         const updated = await getClient().update<Experiment>("experiments/", id, {
           end_date: new Date().toISOString(),
         });
-        outputJson(updated, pretty());
+        outputJson(updated, out());
       } catch (e) {
         outputError((e as Error).message);
       }

@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { loadConfig, saveGlobalConfig } from "../config.js";
-import { outputJson, outputError } from "../output.js";
+import { outputJson, outputError, getOutputOptions } from "../output.js";
 
 export function registerConfigCommand(program: Command): void {
   const cmd = program.command("config").description("Manage CLI configuration");
@@ -21,7 +21,7 @@ export function registerConfigCommand(program: Command): void {
           projectId: opts.projectId,
           host: opts.host,
         });
-        outputJson(saved, program.opts().pretty);
+        outputJson(saved, getOutputOptions(program));
       } catch (e) {
         outputError((e as Error).message);
       }
@@ -40,7 +40,7 @@ export function registerConfigCommand(program: Command): void {
             ? config.apiKey.slice(0, 7) + "..." + config.apiKey.slice(-4)
             : "(not set)",
         };
-        outputJson(display, program.opts().pretty);
+        outputJson(display, getOutputOptions(program));
       } catch (e) {
         outputError((e as Error).message);
       }
