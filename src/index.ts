@@ -17,7 +17,9 @@ const program = new Command();
 
 program
   .name("posthog")
-  .description("Unofficial PostHog CLI — manage PostHog projects from the terminal")
+  .description(
+    "Community-built CLI for PostHog. Not affiliated with or endorsed by PostHog Inc. — manage PostHog projects from the terminal."
+  )
   .version("0.1.5")
   .option("--pretty", "Pretty-print JSON output")
   .option("--json", "Emit machine-readable JSON (use with --help to print the schema)")
@@ -31,7 +33,7 @@ program
   )
   .addHelpText(
     "after",
-    "\nFor agent/tooling use, run `posthog schema` or append `--help --json` to any command\nfor a machine-readable description of the CLI surface."
+    "\nDisclaimer: posthog-cli is community-built and unofficial. It is not affiliated\nwith or endorsed by PostHog Inc. Interacts with PostHog via the public API.\n\nFor agent/tooling use, run `posthog schema` or append `--help --json` to any command\nfor a machine-readable description of the CLI surface."
   );
 
 registerLoginCommand(program);
