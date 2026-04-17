@@ -13,7 +13,7 @@ Forward-looking plan for `posthog-cli`. North star: feel like a frictionless ext
 
 ---
 
-## Milestone 1 — Self-describing CLI ⏳ in progress
+## Milestone 1 — Self-describing CLI ✅ shipped (#1)
 
 Make the CLI introspectable at runtime so agents don't have to scrape `--help`.
 
@@ -27,7 +27,7 @@ Make the CLI introspectable at runtime so agents don't have to scrape `--help`.
 
 ---
 
-## Milestone 2 — Stable output shapes + `--fields`
+## Milestone 2 — Stable output shapes + `--fields` ✅ shipped (#2)
 
 Pin down JSON output and let agents trim payloads to control token cost.
 
@@ -41,7 +41,7 @@ Pin down JSON output and let agents trim payloads to control token cost.
 
 ---
 
-## Milestone 3 — Structured errors + `--dry-run`
+## Milestone 3 — Structured errors + `--dry-run` ⏳ in progress
 
 Make failures machine-readable and add a safety rail for mutations.
 

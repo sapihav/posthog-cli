@@ -294,7 +294,7 @@ export function registerSchemaCommand(program: Command): void {
       try {
         outputJson(serializeProgram(program), getOutputOptions(program));
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 }

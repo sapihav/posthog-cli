@@ -14,7 +14,12 @@ export function registerConfigCommand(program: Command): void {
     .action((opts) => {
       try {
         if (!opts.apiKey && !opts.projectId && !opts.host) {
-          outputError("Provide at least one of --api-key, --project-id, or --host");
+          outputError(
+            {
+              message: "Provide at least one of --api-key, --project-id, or --host.",
+              code: "VALIDATION",
+            }
+          );
         }
         const saved = saveGlobalConfig({
           apiKey: opts.apiKey,
@@ -23,7 +28,7 @@ export function registerConfigCommand(program: Command): void {
         });
         outputJson(saved, getOutputOptions(program));
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -42,7 +47,7 @@ export function registerConfigCommand(program: Command): void {
         };
         outputJson(display, getOutputOptions(program));
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 }

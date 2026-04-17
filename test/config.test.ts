@@ -54,26 +54,41 @@ describe("config", () => {
     assert.equal(config.host, "https://eu.posthog.com");
   });
 
-  it("requireConfig throws when apiKey is missing", async () => {
+  it("requireConfig throws AUTH_MISSING when apiKey is missing", async () => {
     delete process.env.POSTHOG_API_KEY;
     delete process.env.POSTHOG_PROJECT_ID;
 
     const { requireConfig } = await import("../src/config.js");
+    const { PostHogError } = await import("../src/errors.js");
 
-    assert.throws(() => requireConfig(), {
-      message: /No API key configured/,
-    });
+    assert.throws(
+      () => requireConfig(),
+      (err: unknown) => {
+        assert.ok(err instanceof PostHogError);
+        assert.equal(err.code, "AUTH_MISSING");
+        assert.match(err.message, /No API key configured/);
+        assert.match(err.hint ?? "", /posthog login/);
+        return true;
+      }
+    );
   });
 
-  it("requireConfig throws when projectId is missing", async () => {
+  it("requireConfig throws AUTH_MISSING when projectId is missing", async () => {
     process.env.POSTHOG_API_KEY = "phx_test";
     delete process.env.POSTHOG_PROJECT_ID;
 
     const { requireConfig } = await import("../src/config.js");
+    const { PostHogError } = await import("../src/errors.js");
 
-    assert.throws(() => requireConfig(), {
-      message: /No project ID configured/,
-    });
+    assert.throws(
+      () => requireConfig(),
+      (err: unknown) => {
+        assert.ok(err instanceof PostHogError);
+        assert.equal(err.code, "AUTH_MISSING");
+        assert.match(err.message, /No project ID configured/);
+        return true;
+      }
+    );
   });
 
   it("requireConfig returns config when both are set", async () => {

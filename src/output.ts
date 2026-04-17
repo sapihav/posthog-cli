@@ -1,8 +1,9 @@
 /**
- * Output helpers — stdout is always JSON, stderr is human-readable errors.
+ * Output helpers — stdout is always JSON, stderr is structured JSON errors.
  */
 
 import type { Command } from "commander";
+import { PostHogError, type ErrorCode, type ErrorPayload } from "./errors.js";
 
 export interface OutputOptions {
   pretty?: boolean;
@@ -46,8 +47,36 @@ export function outputJson(data: unknown, options: OutputOptions = {}): void {
   process.stdout.write(json + "\n");
 }
 
-export function outputError(message: string): never {
-  process.stderr.write(`Error: ${message}\n`);
+/**
+ * Emit a structured JSON error to stderr and exit with code 1.
+ *
+ * Accepts a string (back-compat — coerced to API_ERROR), an `Error`
+ * (PostHogError keeps its code/hint/docs_url; plain Errors fall back to
+ * API_ERROR), or a fully-formed `ErrorPayload`.
+ *
+ * Output shape: `{"error":{"message":"...","code":"...","hint":"?","docs_url":"?"}}`
+ */
+export function outputError(
+  input: string | Error | ErrorPayload,
+  fallbackCode: ErrorCode = "API_ERROR"
+): never {
+  let payload: ErrorPayload;
+  if (typeof input === "string") {
+    payload = { message: input, code: fallbackCode };
+  } else if (input instanceof PostHogError) {
+    payload = input.toPayload();
+  } else if (input instanceof Error) {
+    payload = { message: input.message, code: fallbackCode };
+  } else {
+    payload = input;
+  }
+
+  // Strip undefined keys so the JSON is minimal.
+  const clean: Record<string, unknown> = { message: payload.message, code: payload.code };
+  if (payload.hint) clean.hint = payload.hint;
+  if (payload.docs_url) clean.docs_url = payload.docs_url;
+
+  process.stderr.write(JSON.stringify({ error: clean }) + "\n");
   process.exit(1);
 }
 

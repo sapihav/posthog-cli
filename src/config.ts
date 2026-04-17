@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
+import { PostHogError } from "./errors.js";
 
 export interface Config {
   apiKey: string;
@@ -53,23 +54,28 @@ export function loadConfig(): Config {
 export function requireConfig(): Config {
   const config = loadConfig();
   if (!config.apiKey) {
-    throw new Error(
-      "No API key configured. Run `posthog config set --api-key <key>` or set POSTHOG_API_KEY."
-    );
+    throw new PostHogError({
+      message: "No API key configured.",
+      code: "AUTH_MISSING",
+      hint: "Run `posthog login` or `posthog config set --api-key <key>`, or set POSTHOG_API_KEY.",
+    });
   }
   if (!config.projectId) {
-    throw new Error(
-      "No project ID configured. Run `posthog config set --project-id <id>` or set POSTHOG_PROJECT_ID."
-    );
+    throw new PostHogError({
+      message: "No project ID configured.",
+      code: "AUTH_MISSING",
+      hint: "Run `posthog login` or `posthog config set --project-id <id>`, or set POSTHOG_PROJECT_ID.",
+    });
   }
   return config;
 }
 
 export function saveGlobalConfig(partial: Partial<Config>): Config {
   if (partial.host && !ALLOWED_HOSTS.has(partial.host.replace(/\/$/, ""))) {
-    throw new Error(
-      `Invalid host "${partial.host}". Allowed: ${[...ALLOWED_HOSTS].join(", ")}`
-    );
+    throw new PostHogError({
+      message: `Invalid host "${partial.host}". Allowed: ${[...ALLOWED_HOSTS].join(", ")}`,
+      code: "VALIDATION",
+    });
   }
   const existing = readJsonFile(GLOBAL_CONFIG_PATH);
   const merged: Config = {

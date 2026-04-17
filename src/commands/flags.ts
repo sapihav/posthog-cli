@@ -1,7 +1,7 @@
 import { Command } from "commander";
-import { requireConfig } from "../config.js";
-import { PostHogClient } from "../client.js";
+import { PostHogClient, clientFor } from "../client.js";
 import { outputJson, outputError, getOutputOptions } from "../output.js";
+import { PostHogError } from "../errors.js";
 
 interface Flag {
   id: number;
@@ -12,10 +12,6 @@ interface Flag {
   [key: string]: unknown;
 }
 
-function getClient(): PostHogClient {
-  return new PostHogClient(requireConfig());
-}
-
 async function resolveFlag(client: PostHogClient, keyOrId: string): Promise<Flag> {
   // Try numeric ID first
   if (/^\d+$/.test(keyOrId)) {
@@ -24,13 +20,20 @@ async function resolveFlag(client: PostHogClient, keyOrId: string): Promise<Flag
   // Search by key
   const flags = await client.list<Flag>("feature_flags/", { search: keyOrId });
   const match = flags.find((f) => f.key === keyOrId);
-  if (!match) throw new Error(`Flag not found: ${keyOrId}`);
+  if (!match) {
+    throw new PostHogError({
+      message: `Flag not found: ${keyOrId}`,
+      code: "NOT_FOUND",
+      hint: "Run `posthog flags list` to see available flags.",
+    });
+  }
   return match;
 }
 
 export function registerFlagsCommand(program: Command): void {
   const cmd = program.command("flags").description("Manage feature flags");
   const out = () => getOutputOptions(program);
+  const getClient = () => clientFor(program);
 
   cmd
     .command("list")
@@ -51,7 +54,7 @@ export function registerFlagsCommand(program: Command): void {
         const result = opts.active ? flags.filter((f) => f.active) : flags;
         outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -63,7 +66,7 @@ export function registerFlagsCommand(program: Command): void {
         const flag = await resolveFlag(getClient(), keyOrId);
         outputJson(flag, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -77,7 +80,7 @@ export function registerFlagsCommand(program: Command): void {
       try {
         const client = getClient();
         const rollout = parseInt(opts.rollout, 10);
-        const flag = await client.create<Flag>("feature_flags/", {
+        const result = await client.create<Flag>("feature_flags/", {
           key: opts.key,
           name: opts.name,
           filters: {
@@ -90,9 +93,9 @@ export function registerFlagsCommand(program: Command): void {
           },
           active: rollout > 0,
         });
-        outputJson(flag, out());
+        outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -119,10 +122,10 @@ export function registerFlagsCommand(program: Command): void {
             ],
           };
         }
-        const updated = await client.update<Flag>("feature_flags/", flag.id, body);
-        outputJson(updated, out());
+        const result = await client.update<Flag>("feature_flags/", flag.id, body);
+        outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -133,12 +136,12 @@ export function registerFlagsCommand(program: Command): void {
       try {
         const client = getClient();
         const flag = await resolveFlag(client, keyOrId);
-        const updated = await client.update<Flag>("feature_flags/", flag.id, {
+        const result = await client.update<Flag>("feature_flags/", flag.id, {
           active: true,
         });
-        outputJson(updated, out());
+        outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -149,12 +152,12 @@ export function registerFlagsCommand(program: Command): void {
       try {
         const client = getClient();
         const flag = await resolveFlag(client, keyOrId);
-        const updated = await client.update<Flag>("feature_flags/", flag.id, {
+        const result = await client.update<Flag>("feature_flags/", flag.id, {
           active: false,
         });
-        outputJson(updated, out());
+        outputJson(result, out());
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 
@@ -165,10 +168,15 @@ export function registerFlagsCommand(program: Command): void {
       try {
         const client = getClient();
         const flag = await resolveFlag(client, keyOrId);
-        await client.delete("feature_flags/", flag.id);
-        outputJson({ deleted: true, key: flag.key, id: flag.id }, out());
+        const result = await client.delete("feature_flags/", flag.id);
+        // In dry-run, client.delete returns the planned request; pass through.
+        // Otherwise it returns void — synthesize a success payload.
+        outputJson(
+          result ?? { deleted: true, key: flag.key, id: flag.id },
+          out()
+        );
       } catch (e) {
-        outputError((e as Error).message);
+        outputError(e as Error);
       }
     });
 }
