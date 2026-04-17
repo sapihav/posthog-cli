@@ -18,7 +18,7 @@ PostHog provides a web UI, SDK, API, and MCP server but no proper CLI. The exist
 ## Project Structure
 
 ```
-poshog-cli/
+posthog-cli/
 ├── src/
 │   ├── index.ts              # Entry: commander root, subcommand wiring
 │   ├── client.ts             # PostHog API client (auth, fetch, retry on 429)
