@@ -19,13 +19,15 @@
     "posthog": "dist/index.js"
   },
   "files": [
-    "dist/**/*.js"
+    "dist/**/*.js",
+    "scripts/postinstall.cjs"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "test": "tsx --test test/*.test.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "postinstall": "node scripts/postinstall.cjs"
   },
   "dependencies": {
     "commander": "^12.0.0"
