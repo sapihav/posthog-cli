@@ -1,4 +1,4 @@
-# poshog-cli
+# posthog-cli
 
 PostHog CLI (`posthog` binary) — manage PostHog projects from the terminal.
 MCPs are not a good fit for AI agent tooling — a CLI is more predictable and composable.

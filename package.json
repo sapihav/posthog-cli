@@ -1,12 +1,12 @@
 {
   "name": "posthog-cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Unofficial PostHog CLI — manage PostHog projects from the terminal",
   "author": "sapihav",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sapihav/poshog-cli.git"
+    "url": "git+https://github.com/sapihav/posthog-cli.git"
   },
   "keywords": [
     "posthog",

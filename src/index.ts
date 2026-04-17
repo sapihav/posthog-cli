@@ -18,7 +18,7 @@ const program = new Command();
 program
   .name("posthog")
   .description("Unofficial PostHog CLI — manage PostHog projects from the terminal")
-  .version("0.1.4")
+  .version("0.1.5")
   .option("--pretty", "Pretty-print JSON output")
   .option("--json", "Emit machine-readable JSON (use with --help to print the schema)")
   .option(
