@@ -23,7 +23,10 @@ Alternatively, use environment variables:
 ```bash
 export POSTHOG_API_KEY=phx_...
 export POSTHOG_PROJECT_ID=12345
+export POSTHOG_HOST=https://us.posthog.com   # or https://eu.posthog.com (optional, defaults to US)
 ```
+
+Precedence: env vars → local `.posthog.json` (`projectId` only) → global `~/.config/posthog/config.json`.
 
 ## Commands
 
@@ -35,6 +38,7 @@ posthog experiments list|get|results|launch|pause|end
 posthog insights list|get
 posthog dashboards list|get
 posthog query "<hogql>"
+posthog schema
 ```
 
 ## Examples
@@ -57,8 +61,25 @@ posthog flags list | jq '.[].key'
 ## Output
 
 - **stdout**: Always valid JSON (for piping/scripting)
-- **stderr**: Human-readable errors, exit code 1
+- **stderr**: Human-readable errors (structured: `{"error":{"message","code","hint?","docs_url?"}}`), exit code 1
 - `--pretty`: Indented JSON for humans
+
+## For agents and tooling
+
+```bash
+posthog schema                          # full command tree as JSON
+posthog flags list --help --json        # per-command schema (works at every level)
+posthog flags list --fields key,active  # trim output to specific fields
+posthog flags create --key x --name X --rollout 10 --dry-run   # preview the API request, no network call
+```
+
+Error codes: `AUTH_MISSING`, `AUTH_INVALID`, `NOT_FOUND`, `RATE_LIMITED`, `API_ERROR`, `VALIDATION`.
+
+See [`OUTPUT.md`](OUTPUT.md) for per-command JSON shapes.
+
+## Postinstall banner
+
+On install, this package prints a short unofficial-disclaimer banner to stderr. Opt out with `POSTHOG_CLI_NO_BANNER=1` or `npm install --ignore-scripts`.
 
 ## License
 
