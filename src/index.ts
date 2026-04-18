@@ -20,7 +20,7 @@ program
   .description(
     "Community-built CLI for PostHog. Not affiliated with or endorsed by PostHog Inc. — manage PostHog projects from the terminal."
   )
-  .version("0.1.6")
+  .version("0.2.0")
   .option("--pretty", "Pretty-print JSON output")
   .option("--json", "Emit machine-readable JSON (use with --help to print the schema)")
   .option(

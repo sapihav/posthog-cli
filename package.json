@@ -1,6 +1,6 @@
 {
   "name": "posthog-cli",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "Unofficial PostHog CLI — manage PostHog projects from the terminal",
   "author": "sapihav",
   "license": "MIT",
