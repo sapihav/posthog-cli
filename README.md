@@ -6,6 +6,16 @@ PostHog CLI — manage PostHog projects from the terminal. JSON output by defaul
 
 ## Install
 
+**One-line install (recommended)** — no Node.js required:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/sapihav/posthog-cli/main/install.sh | bash
+```
+
+Downloads the latest standalone binary for your OS/arch (built with Bun), verifies SHA-256, installs `posthog` to `/usr/local/bin`. Override with `INSTALL_DIR=$HOME/.local/bin`. Requires `curl` + `jq`. Supports macOS + Linux (x86_64 / arm64).
+
+**Via npm** (requires Node.js 18+):
+
 ```bash
 npm install -g posthog-cli
 ```

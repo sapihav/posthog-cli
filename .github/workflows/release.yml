@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # Compile TypeScript to a single standalone binary via Bun, per target.
+  # Output archives + SHA-256 checksums uploaded to the GitHub release so
+  # the curl one-liner in install.sh works without a Node runtime.
+  binary-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - bun_target: bun-linux-x64
+            archive_name: posthog-cli_Linux_x86_64
+          - bun_target: bun-linux-arm64
+            archive_name: posthog-cli_Linux_arm64
+          - bun_target: bun-darwin-x64
+            archive_name: posthog-cli_Darwin_x86_64
+          - bun_target: bun-darwin-arm64
+            archive_name: posthog-cli_Darwin_arm64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install
+
+      - name: Compile single binary with Bun
+        run: |
+          bun build --compile --minify --sourcemap \
+            --target=${{ matrix.bun_target }} \
+            src/index.ts \
+            --outfile posthog
+
+      - name: Package archive + checksum
+        run: |
+          tar -czf "${{ matrix.archive_name }}.tar.gz" posthog LICENSE README.md
+          sha256sum "${{ matrix.archive_name }}.tar.gz" > "${{ matrix.archive_name }}.tar.gz.sha256"
+
+      - name: Upload to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ matrix.archive_name }}.tar.gz
+            ${{ matrix.archive_name }}.tar.gz.sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to npm alongside the binary release. Runs only if NPM_TOKEN is
+  # configured as a repo secret; otherwise the step is skipped so the binary
+  # release pipeline still succeeds.
+  npm-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install + build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Publish to npm
+        if: ${{ env.NODE_AUTH_TOKEN != '' }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
