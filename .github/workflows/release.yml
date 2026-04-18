@@ -5,8 +5,12 @@ on:
     tags:
       - 'v*'
 
+# id-token: write is required for npm's Trusted Publisher OIDC flow
+# (https://docs.npmjs.com/trusted-publishers). Pair with `npm publish
+# --provenance` below — no NPM_TOKEN secret needed.
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   # Compile TypeScript to a single standalone binary via Bun, per target.
@@ -58,9 +62,16 @@ jobs:
             ${{ matrix.archive_name }}.tar.gz.sha256
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Publish to npm alongside the binary release. Runs only if NPM_TOKEN is
-  # configured as a repo secret; otherwise the step is skipped so the binary
-  # release pipeline still succeeds.
+  # Publish to npm using Trusted Publisher (OIDC). No NPM_TOKEN needed.
+  # Setup required (one-time, on npmjs.com):
+  #   https://www.npmjs.com/package/posthog-cli/access
+  #   → Trusted Publisher → Add → GitHub Actions
+  #     • Organization/User: sapihav
+  #     • Repository:        posthog-cli
+  #     • Workflow filename: release.yml
+  #     • Environment:       (leave blank unless you add one below)
+  # After setup, `npm publish --provenance` authenticates via OIDC and
+  # attaches a provenance statement to the published version.
   npm-publish:
     runs-on: ubuntu-latest
     steps:
@@ -78,8 +89,5 @@ jobs:
           npm ci
           npm run build
 
-      - name: Publish to npm
-        if: ${{ env.NODE_AUTH_TOKEN != '' }}
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (Trusted Publisher + provenance)
+        run: npm publish --provenance --access public
