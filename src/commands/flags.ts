@@ -1,6 +1,11 @@
 import { Command } from "commander";
-import { PostHogClient, clientFor } from "../client.js";
-import { outputJson, outputError, getOutputOptions } from "../output.js";
+import { PostHogClient, clientFor, listParamsFor } from "../client.js";
+import {
+  outputJson,
+  outputError,
+  getOutputOptions,
+  resolveStdinArg,
+} from "../output.js";
 import { PostHogError } from "../errors.js";
 
 interface Flag {
@@ -44,7 +49,7 @@ export function registerFlagsCommand(program: Command): void {
     .action(async (opts) => {
       try {
         const client = getClient();
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = { ...listParamsFor(program) };
         if (opts.search) params.search = opts.search;
 
         const flags = opts.all
@@ -60,10 +65,12 @@ export function registerFlagsCommand(program: Command): void {
 
   cmd
     .command("get <key-or-id>")
-    .description("Get a feature flag by key or ID")
+    .description(
+      "Get a feature flag by key or ID (pass `-` to read from stdin)"
+    )
     .action(async (keyOrId: string) => {
       try {
-        const flag = await resolveFlag(getClient(), keyOrId);
+        const flag = await resolveFlag(getClient(), resolveStdinArg(keyOrId));
         outputJson(flag, out());
       } catch (e) {
         outputError(e as Error);
@@ -101,14 +108,14 @@ export function registerFlagsCommand(program: Command): void {
 
   cmd
     .command("update <key-or-id>")
-    .description("Update a feature flag")
+    .description("Update a feature flag (pass `-` to read key-or-id from stdin)")
     .option("--name <name>", "New name")
     .option("--rollout <percentage>", "New rollout percentage")
     .option("--active <bool>", "Set active status")
     .action(async (keyOrId: string, opts) => {
       try {
         const client = getClient();
-        const flag = await resolveFlag(client, keyOrId);
+        const flag = await resolveFlag(client, resolveStdinArg(keyOrId));
         const body: Record<string, unknown> = {};
         if (opts.name) body.name = opts.name;
         if (opts.active !== undefined) body.active = opts.active === "true";
@@ -131,11 +138,11 @@ export function registerFlagsCommand(program: Command): void {
 
   cmd
     .command("enable <key-or-id>")
-    .description("Enable a feature flag")
+    .description("Enable a feature flag (pass `-` to read from stdin)")
     .action(async (keyOrId: string) => {
       try {
         const client = getClient();
-        const flag = await resolveFlag(client, keyOrId);
+        const flag = await resolveFlag(client, resolveStdinArg(keyOrId));
         const result = await client.update<Flag>("feature_flags/", flag.id, {
           active: true,
         });
@@ -147,11 +154,11 @@ export function registerFlagsCommand(program: Command): void {
 
   cmd
     .command("disable <key-or-id>")
-    .description("Disable a feature flag")
+    .description("Disable a feature flag (pass `-` to read from stdin)")
     .action(async (keyOrId: string) => {
       try {
         const client = getClient();
-        const flag = await resolveFlag(client, keyOrId);
+        const flag = await resolveFlag(client, resolveStdinArg(keyOrId));
         const result = await client.update<Flag>("feature_flags/", flag.id, {
           active: false,
         });
@@ -163,11 +170,11 @@ export function registerFlagsCommand(program: Command): void {
 
   cmd
     .command("delete <key-or-id>")
-    .description("Delete a feature flag")
+    .description("Delete a feature flag (pass `-` to read from stdin)")
     .action(async (keyOrId: string) => {
       try {
         const client = getClient();
-        const flag = await resolveFlag(client, keyOrId);
+        const flag = await resolveFlag(client, resolveStdinArg(keyOrId));
         const result = await client.delete("feature_flags/", flag.id);
         // In dry-run, client.delete returns the planned request; pass through.
         // Otherwise it returns void — synthesize a success payload.

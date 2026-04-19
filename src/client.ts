@@ -10,6 +10,8 @@ interface ApiResponse<T> {
 export interface ClientOptions {
   /** When true, mutating methods (create/update/delete) skip the network call and return a planned-request descriptor instead. */
   dryRun?: boolean;
+  /** Emit request lines to stderr (method + URL). Secrets are never logged. */
+  verbose?: boolean;
 }
 
 /**
@@ -28,6 +30,7 @@ export class PostHogClient {
   private headers: Record<string, string>;
   private projectId: string;
   readonly dryRun: boolean;
+  readonly verbose: boolean;
 
   constructor(config: Config, options: ClientOptions = {}) {
     this.projectId = config.projectId;
@@ -37,6 +40,7 @@ export class PostHogClient {
       "Content-Type": "application/json",
     };
     this.dryRun = Boolean(options.dryRun);
+    this.verbose = Boolean(options.verbose);
   }
 
   private async request<T>(
@@ -46,6 +50,10 @@ export class PostHogClient {
     retries = 3
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
+
+    if (this.verbose) {
+      process.stderr.write(`[posthog] ${method} ${url}\n`);
+    }
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       const res = await fetch(url, {
@@ -124,9 +132,10 @@ export class PostHogClient {
     const base = useEnv
       ? this.envPath(resource)
       : this.projectPath(resource);
-    const qs = params
-      ? "?" + new URLSearchParams(params).toString()
-      : "";
+    const qs =
+      params && Object.keys(params).length > 0
+        ? "?" + new URLSearchParams(params).toString()
+        : "";
     const data = await this.request<ApiResponse<T>>("GET", base + qs);
     return data.results ?? (data as unknown as T[]);
   }
@@ -139,9 +148,10 @@ export class PostHogClient {
     const base = useEnv
       ? this.envPath(resource)
       : this.projectPath(resource);
-    const qs = params
-      ? "?" + new URLSearchParams(params).toString()
-      : "";
+    const qs =
+      params && Object.keys(params).length > 0
+        ? "?" + new URLSearchParams(params).toString()
+        : "";
 
     let nextUrl: string | null = base + qs;
     const all: T[] = [];
@@ -223,5 +233,30 @@ import { requireConfig } from "./config.js";
 
 export function clientFor(program: Command): PostHogClient {
   const opts = program.opts();
-  return new PostHogClient(requireConfig(), { dryRun: Boolean(opts.dryRun) });
+  return new PostHogClient(requireConfig(), {
+    dryRun: Boolean(opts.dryRun),
+    verbose: Boolean(opts.verbose) && !opts.quiet,
+  });
+}
+
+/**
+ * Pull the shared list-command flag (--limit) off the program root.
+ * Returned as a params record so commands can merge it straight into
+ * `client.list(resource, params)`.
+ */
+export function listParamsFor(program: Command): Record<string, string> {
+  const opts = program.opts();
+  const params: Record<string, string> = {};
+  if (opts.limit !== undefined) {
+    const n = parseInt(String(opts.limit), 10);
+    if (!Number.isFinite(n) || n <= 0) {
+      throw new PostHogError({
+        message: `Invalid --limit value: ${opts.limit}`,
+        code: "VALIDATION",
+        hint: "Pass a positive integer, e.g. --limit 50",
+      });
+    }
+    params.limit = String(n);
+  }
+  return params;
 }

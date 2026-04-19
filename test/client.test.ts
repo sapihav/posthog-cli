@@ -302,6 +302,44 @@ describe("PostHogClient", () => {
     assert.match(capturedUrl, /search=test/);
     assert.match(capturedUrl, /limit=50/);
   });
+
+  it("omits the query string when params is empty", async () => {
+    let capturedUrl = "";
+    globalThis.fetch = async (input: string | URL | Request) => {
+      capturedUrl = input.toString();
+      return mockResponse(200, { results: [] });
+    };
+
+    const client = new PostHogClient(TEST_CONFIG);
+    await client.list("feature_flags/", {});
+
+    assert.ok(
+      !capturedUrl.endsWith("?"),
+      `expected no dangling '?', got ${capturedUrl}`
+    );
+    assert.equal(
+      capturedUrl,
+      "https://us.posthog.com/api/projects/12345/feature_flags/"
+    );
+  });
+
+  it("emits verbose request line to stderr without leaking the API key", async () => {
+    globalThis.fetch = async () => mockResponse(200, { results: [] });
+    let captured = "";
+    const originalErr = process.stderr.write;
+    process.stderr.write = ((chunk: string) => {
+      captured += chunk;
+      return true;
+    }) as typeof process.stderr.write;
+    try {
+      const client = new PostHogClient(TEST_CONFIG, { verbose: true });
+      await client.list("feature_flags/");
+    } finally {
+      process.stderr.write = originalErr;
+    }
+    assert.match(captured, /\[posthog\] GET https:\/\/us\.posthog\.com/);
+    assert.ok(!captured.includes("phx_test_key"));
+  });
 });
 
 describe("PostHogClient dryRun", () => {

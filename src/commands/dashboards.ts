@@ -1,6 +1,11 @@
 import { Command } from "commander";
-import { clientFor } from "../client.js";
-import { outputJson, outputError, getOutputOptions } from "../output.js";
+import { clientFor, listParamsFor } from "../client.js";
+import {
+  outputJson,
+  outputError,
+  getOutputOptions,
+  resolveStdinArg,
+} from "../output.js";
 
 interface Dashboard {
   id: number;
@@ -20,9 +25,10 @@ export function registerDashboardsCommand(program: Command): void {
     .action(async (opts) => {
       try {
         const client = getClient();
+        const params: Record<string, string> = { ...listParamsFor(program) };
         const dashboards = opts.all
-          ? await client.listAll<Dashboard>("dashboards/", undefined, true)
-          : await client.list<Dashboard>("dashboards/", undefined, true);
+          ? await client.listAll<Dashboard>("dashboards/", params, true)
+          : await client.list<Dashboard>("dashboards/", params, true);
         outputJson(dashboards, out());
       } catch (e) {
         outputError(e as Error);
@@ -31,10 +37,14 @@ export function registerDashboardsCommand(program: Command): void {
 
   cmd
     .command("get <id>")
-    .description("Get dashboard details")
+    .description("Get dashboard details (pass `-` to read id from stdin)")
     .action(async (id: string) => {
       try {
-        const dashboard = await getClient().get<Dashboard>("dashboards/", id, true);
+        const dashboard = await getClient().get<Dashboard>(
+          "dashboards/",
+          resolveStdinArg(id),
+          true
+        );
         outputJson(dashboard, out());
       } catch (e) {
         outputError(e as Error);
