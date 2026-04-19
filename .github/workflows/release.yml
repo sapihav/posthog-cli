@@ -58,11 +58,24 @@ jobs:
             ${{ matrix.archive_name }}.tar.gz.sha256
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Publish to npm alongside the binary release. Runs only if NPM_TOKEN is
-  # configured as a repo secret; otherwise the step is skipped so the binary
-  # release pipeline still succeeds.
+  # Publish to npm alongside the binary release via npm Trusted Publishers
+  # (OIDC). No NPM_TOKEN secret required — the npm registry verifies the
+  # GitHub Actions OIDC token against the Trusted Publisher entry configured
+  # at https://www.npmjs.com/package/posthog-cli/access.
+  #
+  # Required npm-side config (one-time):
+  #   Publisher: GitHub Actions
+  #   Repository: sapihav/posthog-cli
+  #   Workflow:   .github/workflows/release.yml
+  #   Environment: (none)
+  #
+  # --provenance attaches a signed attestation linking the package to this
+  # workflow run, visible on the npm package page.
   npm-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,7 +92,4 @@ jobs:
           npm run build
 
       - name: Publish to npm
-        if: ${{ env.NODE_AUTH_TOKEN != '' }}
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
