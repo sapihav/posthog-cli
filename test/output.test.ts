@@ -1,5 +1,8 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 describe("outputJson", () => {
   let written: string;
@@ -191,6 +194,113 @@ describe("outputError", () => {
     const parsed = JSON.parse(stderrChunks);
     assert.equal(parsed.error.hint, undefined);
     assert.equal(parsed.error.docs_url, undefined);
+  });
+});
+
+describe("log / vlog", () => {
+  let stderrChunks: string;
+  let originalErr: typeof process.stderr.write;
+
+  beforeEach(() => {
+    stderrChunks = "";
+    originalErr = process.stderr.write;
+    process.stderr.write = ((chunk: string) => {
+      stderrChunks += chunk;
+      return true;
+    }) as typeof process.stderr.write;
+  });
+
+  afterEach(() => {
+    process.stderr.write = originalErr;
+  });
+
+  it("log emits to stderr by default", async () => {
+    const { log } = await import("../src/output.js");
+    log("hello");
+    assert.equal(stderrChunks, "hello\n");
+  });
+
+  it("log is silenced by --quiet", async () => {
+    const { log } = await import("../src/output.js");
+    log("hidden", { quiet: true });
+    assert.equal(stderrChunks, "");
+  });
+
+  it("vlog only emits when verbose", async () => {
+    const { vlog } = await import("../src/output.js");
+    vlog("off");
+    assert.equal(stderrChunks, "");
+    vlog("on", { verbose: true });
+    assert.equal(stderrChunks, "on\n");
+  });
+
+  it("vlog honors --quiet even with --verbose", async () => {
+    const { vlog } = await import("../src/output.js");
+    vlog("muzzled", { verbose: true, quiet: true });
+    assert.equal(stderrChunks, "");
+  });
+});
+
+describe("--out file redirect", () => {
+  let tmpDir: string;
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "posthog-out-"));
+  });
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("writes JSON to the file path instead of stdout", async () => {
+    const { outputJson } = await import("../src/output.js");
+    const filePath = path.join(tmpDir, "out.json");
+    let stdoutCalled = false;
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((_chunk: string) => {
+      stdoutCalled = true;
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      outputJson({ a: 1 }, { out: filePath, pretty: true });
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+    assert.equal(stdoutCalled, false);
+    const contents = fs.readFileSync(filePath, "utf-8");
+    assert.equal(contents, '{\n  "a": 1\n}\n');
+  });
+});
+
+describe("resolveStdinArg", () => {
+  const originalIsTTY = process.stdin.isTTY;
+
+  afterEach(() => {
+    Object.defineProperty(process.stdin, "isTTY", {
+      value: originalIsTTY,
+      configurable: true,
+    });
+  });
+
+  it("returns non-`-` values unchanged without touching stdin", async () => {
+    const { resolveStdinArg } = await import("../src/output.js");
+    assert.equal(resolveStdinArg("my-key"), "my-key");
+  });
+
+  it("throws VALIDATION when `-` is passed and stdin is a TTY", async () => {
+    Object.defineProperty(process.stdin, "isTTY", {
+      value: true,
+      configurable: true,
+    });
+    const { resolveStdinArg } = await import("../src/output.js");
+    const { PostHogError } = await import("../src/errors.js");
+    assert.throws(
+      () => resolveStdinArg("-"),
+      (err: unknown) => {
+        assert.ok(err instanceof PostHogError);
+        assert.equal(err.code, "VALIDATION");
+        assert.match(err.message, /no data is piped/);
+        return true;
+      }
+    );
   });
 });
 

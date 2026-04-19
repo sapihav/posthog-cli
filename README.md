@@ -38,6 +38,8 @@ export POSTHOG_HOST=https://us.posthog.com   # or https://eu.posthog.com (option
 
 Precedence: env vars → local `.posthog.json` (`projectId` only) → global `~/.config/posthog/config.json`.
 
+Set `POSTHOG_CONFIG=env-only` to ignore both config files and rely purely on env vars (useful for CI sandboxes).
+
 ## Commands
 
 ```
@@ -80,7 +82,12 @@ posthog flags list | jq '.[].key'
 posthog schema                          # full command tree as JSON
 posthog flags list --help --json        # per-command schema (works at every level)
 posthog flags list --fields key,active  # trim output to specific fields
+posthog flags list --limit 5            # cap list results (forwarded to PostHog API)
 posthog flags create --key x --name X --rollout 10 --dry-run   # preview the API request, no network call
+echo "my-flag" | posthog flags get -    # pipe a key/id/query via `-`
+posthog schema --out schema.json        # write JSON payload to file instead of stdout
+posthog flags list --verbose            # log request URLs to stderr (secrets redacted)
+posthog flags list --quiet              # suppress progress messages on stderr
 ```
 
 Error codes: `AUTH_MISSING`, `AUTH_INVALID`, `NOT_FOUND`, `RATE_LIMITED`, `API_ERROR`, `VALIDATION`.

@@ -41,7 +41,7 @@ Pin down JSON output and let agents trim payloads to control token cost.
 
 ---
 
-## Milestone 3 — Structured errors + `--dry-run` ⏳ in progress
+## Milestone 3 — Structured errors + `--dry-run` ✅ shipped (#3)
 
 Make failures machine-readable and add a safety rail for mutations.
 
@@ -59,13 +59,13 @@ Make failures machine-readable and add a safety rail for mutations.
 
 Goal: replace PostHog MCP (~200 tools across ~30 domains) with this CLI. Upstream MCP source of truth: `github.com/PostHog/posthog/tree/master/services/mcp`. Domain grouping follows that repo's tool categories. Each milestone below is **one PR, ≤500 LoC app code**, sequential — no batching.
 
-### Milestone 4 — Contract flags hardening
+### Milestone 4 — Contract flags hardening ✅ shipped
 
 Complete the workspace-standard flag contract on every existing and future command.
 
-- `--quiet`, `--verbose`, `--out <file>`, `--limit N`, `--json-errors` (already partial via M3 — extend everywhere).
-- stdin `-` support on commands that take a query, key, or ID.
-- Env-var-only auth mode (the workspace CLAUDE.md mandates no file fallback); introduce `POSTHOG_CONFIG=env-only` switch. Keep `~/.config/posthog/config.json` as default for backward compatibility.
+- `--quiet`, `--verbose`, `--out <file>`, `--limit N`, `--json-errors` registered as global flags; `--limit` is forwarded to list endpoints, `--out` redirects stdout JSON to a file, `--verbose` logs request URLs (secrets never leaked), `--quiet` mutes progress, `--json-errors` is always-on (accepted for compat).
+- stdin `-` support on commands taking a key, id, or query (`flags get|update|enable|disable|delete`, `experiments get|results|launch|pause|end`, `insights get`, `dashboards get`, `query`).
+- `POSTHOG_CONFIG=env-only` disables local/global config file reads so env vars are the sole source. `~/.config/posthog/config.json` remains the default otherwise.
 
 **Verify:** `posthog flags list --limit 5 --quiet --pretty` prints 5 flags, no progress on stderr; `echo "flag_key" | posthog flags get -` works.
 

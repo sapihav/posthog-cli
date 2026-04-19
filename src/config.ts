@@ -33,10 +33,24 @@ function readJsonFile(filePath: string): Partial<Config> {
  * Security: local .posthog.json can only set projectId. apiKey and host
  * are restricted to env vars and global config to prevent credential
  * theft via malicious repositories.
+ *
+ * Set `POSTHOG_CONFIG=env-only` to disable all file reads — useful for CI
+ * sandboxes where any on-disk config should be ignored.
  */
 export function loadConfig(): Config {
-  const global = readJsonFile(GLOBAL_CONFIG_PATH);
-  const local = readJsonFile(path.join(process.cwd(), LOCAL_CONFIG_NAME));
+  const raw = process.env.POSTHOG_CONFIG;
+  const envOnly = raw === "env-only";
+  if (raw && !envOnly && !process.env.POSTHOG_CONFIG_WARNED) {
+    process.stderr.write(
+      `[posthog] Warning: POSTHOG_CONFIG="${raw}" is not recognized. ` +
+        'Only "env-only" is supported; falling back to default config precedence.\n'
+    );
+    process.env.POSTHOG_CONFIG_WARNED = "1";
+  }
+  const global = envOnly ? {} : readJsonFile(GLOBAL_CONFIG_PATH);
+  const local = envOnly
+    ? {}
+    : readJsonFile(path.join(process.cwd(), LOCAL_CONFIG_NAME));
 
   const apiKey =
     process.env.POSTHOG_API_KEY || global.apiKey || "";

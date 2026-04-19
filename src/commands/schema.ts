@@ -261,13 +261,21 @@ export function maybeEmitJsonHelp(program: Command, argv: string[]): void {
   const pretty = argv.includes("--pretty");
   const fieldsIdx = argv.indexOf("--fields");
   const fields = fieldsIdx >= 0 ? argv[fieldsIdx + 1] : undefined;
+  // Flags that take a value — derived from program.options so new value-options
+  // (--out, --limit, --fields, …) are skipped automatically and the pre-parser
+  // doesn't drift from the real command definition.
+  const valueFlags = new Set<string>();
+  for (const opt of program.options) {
+    if (!opt.required && !opt.optional) continue;
+    if (opt.long) valueFlags.add(opt.long);
+    if (opt.short) valueFlags.add(opt.short);
+  }
   // Strip flags (and their values) to find the command path (e.g. ["flags", "list"]).
   const positional: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith("-")) {
-      // Skip the value of --fields (the only global option that takes a value pre-parse).
-      if (a === "--fields") i++;
+      if (valueFlags.has(a)) i++;
       continue;
     }
     positional.push(a);

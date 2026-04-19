@@ -1,6 +1,11 @@
 import { Command } from "commander";
-import { clientFor } from "../client.js";
-import { outputJson, outputError, getOutputOptions } from "../output.js";
+import { clientFor, listParamsFor } from "../client.js";
+import {
+  outputJson,
+  outputError,
+  getOutputOptions,
+  resolveStdinArg,
+} from "../output.js";
 
 interface Experiment {
   id: number;
@@ -23,7 +28,7 @@ export function registerExperimentsCommand(program: Command): void {
     .action(async (opts) => {
       try {
         const client = getClient();
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = { ...listParamsFor(program) };
         if (opts.status) params.status = opts.status;
 
         const experiments = opts.all
@@ -37,10 +42,13 @@ export function registerExperimentsCommand(program: Command): void {
 
   cmd
     .command("get <id>")
-    .description("Get experiment details")
+    .description("Get experiment details (pass `-` to read id from stdin)")
     .action(async (id: string) => {
       try {
-        const exp = await getClient().get<Experiment>("experiments/", id);
+        const exp = await getClient().get<Experiment>(
+          "experiments/",
+          resolveStdinArg(id)
+        );
         outputJson(exp, out());
       } catch (e) {
         outputError(e as Error);
@@ -49,12 +57,13 @@ export function registerExperimentsCommand(program: Command): void {
 
   cmd
     .command("results <id>")
-    .description("Get experiment results")
+    .description("Get experiment results (pass `-` to read id from stdin)")
     .action(async (id: string) => {
       try {
         const client = getClient();
+        const resolved = resolveStdinArg(id);
         // Results is a sub-resource
-        const results = await client.get<unknown>("experiments/", `${id}/results`);
+        const results = await client.get<unknown>("experiments/", `${resolved}/results`);
         outputJson(results, out());
       } catch (e) {
         outputError(e as Error);
@@ -63,12 +72,14 @@ export function registerExperimentsCommand(program: Command): void {
 
   cmd
     .command("launch <id>")
-    .description("Launch a draft experiment")
+    .description("Launch a draft experiment (pass `-` to read id from stdin)")
     .action(async (id: string) => {
       try {
-        const result = await getClient().update<Experiment>("experiments/", id, {
-          start_date: new Date().toISOString(),
-        });
+        const result = await getClient().update<Experiment>(
+          "experiments/",
+          resolveStdinArg(id),
+          { start_date: new Date().toISOString() }
+        );
         outputJson(result, out());
       } catch (e) {
         outputError(e as Error);
@@ -77,12 +88,14 @@ export function registerExperimentsCommand(program: Command): void {
 
   cmd
     .command("pause <id>")
-    .description("Pause a running experiment")
+    .description("Pause a running experiment (pass `-` to read id from stdin)")
     .action(async (id: string) => {
       try {
-        const result = await getClient().update<Experiment>("experiments/", id, {
-          end_date: new Date().toISOString(),
-        });
+        const result = await getClient().update<Experiment>(
+          "experiments/",
+          resolveStdinArg(id),
+          { end_date: new Date().toISOString() }
+        );
         outputJson(result, out());
       } catch (e) {
         outputError(e as Error);
@@ -91,12 +104,14 @@ export function registerExperimentsCommand(program: Command): void {
 
   cmd
     .command("end <id>")
-    .description("End an experiment")
+    .description("End an experiment (pass `-` to read id from stdin)")
     .action(async (id: string) => {
       try {
-        const result = await getClient().update<Experiment>("experiments/", id, {
-          end_date: new Date().toISOString(),
-        });
+        const result = await getClient().update<Experiment>(
+          "experiments/",
+          resolveStdinArg(id),
+          { end_date: new Date().toISOString() }
+        );
         outputJson(result, out());
       } catch (e) {
         outputError(e as Error);

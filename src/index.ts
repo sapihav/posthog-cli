@@ -31,6 +31,20 @@ program
     "--dry-run",
     "For mutating commands: print the planned API request as JSON and exit without sending it"
   )
+  .option("--quiet", "Suppress non-essential stderr progress (errors still emit)")
+  .option(
+    "--verbose",
+    "Log request URLs and progress to stderr (secrets redacted)"
+  )
+  .option("--out <file>", "Write stdout JSON payload to this file instead of the terminal")
+  .option(
+    "--limit <n>",
+    "Cap result count for list commands (forwarded to the PostHog API)"
+  )
+  .option(
+    "--json-errors",
+    "Force structured JSON error output (always on — accepted for workspace CLI compat)"
+  )
   .addHelpText(
     "after",
     "\nDisclaimer: posthog-cli is community-built and unofficial. It is not affiliated\nwith or endorsed by PostHog Inc. Interacts with PostHog via the public API.\n\nFor agent/tooling use, run `posthog schema` or append `--help --json` to any command\nfor a machine-readable description of the CLI surface."

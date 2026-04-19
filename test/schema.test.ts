@@ -80,6 +80,56 @@ describe("schema serialization", () => {
     assert.equal(findCommand(program, []), null);
   });
 
+  it("maybeEmitJsonHelp skips values for every global value-option (not just --fields)", async () => {
+    const { maybeEmitJsonHelp } = await import("../src/commands/schema.js");
+    const program = new Command();
+    program
+      .name("posthog")
+      .option("--pretty", "pretty")
+      .option("--json", "json")
+      .option("--fields <list>", "fields projection")
+      .option("--out <file>", "write payload to file")
+      .option("--limit <n>", "cap list result count");
+    program.command("flags").command("list").action(() => {});
+
+    // Capture stdout + intercept process.exit so the pre-parser doesn't nuke the test runner.
+    let captured = "";
+    const originalWrite = process.stdout.write;
+    const originalExit = process.exit;
+    process.stdout.write = ((chunk: string) => {
+      captured += chunk;
+      return true;
+    }) as typeof process.stdout.write;
+    process.exit = ((_code?: number) => {
+      throw new Error("__exit__");
+    }) as typeof process.exit;
+
+    try {
+      assert.throws(() =>
+        maybeEmitJsonHelp(program, [
+          "--limit",
+          "50",
+          "--out",
+          "/tmp/x.json",
+          "--help",
+          "--json",
+          "flags",
+          "list",
+        ])
+      );
+    } finally {
+      process.stdout.write = originalWrite;
+      process.exit = originalExit;
+    }
+
+    const parsed = JSON.parse(captured);
+    assert.equal(
+      parsed.path,
+      "flags list",
+      `expected scoped schema for 'flags list', got path='${parsed.path}'`
+    );
+  });
+
   it("OUTPUT_SHAPES has an entry for every documented command", async () => {
     const { OUTPUT_SHAPES } = await import("../src/commands/schema.js");
     // Spot-check a few critical commands an agent would care about.

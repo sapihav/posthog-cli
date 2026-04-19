@@ -1,6 +1,11 @@
 import { Command } from "commander";
-import { clientFor } from "../client.js";
-import { outputJson, outputError, getOutputOptions } from "../output.js";
+import { clientFor, listParamsFor } from "../client.js";
+import {
+  outputJson,
+  outputError,
+  getOutputOptions,
+  resolveStdinArg,
+} from "../output.js";
 
 interface Insight {
   id: number;
@@ -22,7 +27,7 @@ export function registerInsightsCommand(program: Command): void {
     .action(async (opts) => {
       try {
         const client = getClient();
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = { ...listParamsFor(program) };
         if (opts.search) params.search = opts.search;
 
         const insights = opts.all
@@ -36,10 +41,14 @@ export function registerInsightsCommand(program: Command): void {
 
   cmd
     .command("get <id>")
-    .description("Get insight details")
+    .description("Get insight details (pass `-` to read id from stdin)")
     .action(async (id: string) => {
       try {
-        const insight = await getClient().get<Insight>("insights/", id, true);
+        const insight = await getClient().get<Insight>(
+          "insights/",
+          resolveStdinArg(id),
+          true
+        );
         outputJson(insight, out());
       } catch (e) {
         outputError(e as Error);

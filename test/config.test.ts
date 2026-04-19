@@ -41,6 +41,34 @@ describe("config", () => {
     assert.equal(config.host, "https://us.posthog.com");
   });
 
+  it("loadConfig with POSTHOG_CONFIG=env-only ignores on-disk files", async () => {
+    // Write a global config that would normally populate apiKey/projectId.
+    const dir = path.join(os.homedir(), ".config", "posthog");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      globalConfigPath,
+      JSON.stringify({
+        apiKey: "phx_from_file",
+        projectId: "999",
+        host: "https://us.posthog.com",
+      })
+    );
+
+    delete process.env.POSTHOG_API_KEY;
+    delete process.env.POSTHOG_PROJECT_ID;
+    process.env.POSTHOG_CONFIG = "env-only";
+
+    try {
+      const { loadConfig } = await import("../src/config.js");
+      const config = loadConfig();
+      assert.equal(config.apiKey, "");
+      assert.equal(config.projectId, "");
+    } finally {
+      delete process.env.POSTHOG_CONFIG;
+      fs.rmSync(globalConfigPath, { force: true });
+    }
+  });
+
   it("loadConfig picks up env vars with highest priority", async () => {
     process.env.POSTHOG_API_KEY = "phx_env_key";
     process.env.POSTHOG_PROJECT_ID = "env_project";
