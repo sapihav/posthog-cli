@@ -169,6 +169,12 @@ export const OUTPUT_SHAPES: Record<string, OutputShape> = {
     description:
       "Raw HogQL query result from PostHog. Typically { results: any[][], columns: string[], types: string[] }.",
   },
+  "docs-search": {
+    type: "object",
+    description:
+      "PostHog docs answer from the Inkeep-backed search endpoint (mirrors the upstream PostHog MCP tool). Requires INKEEP_API_KEY.",
+    fields: { query: "string", answer: "string" },
+  },
   schema: {
     type: "object",
     description: "The CLI schema itself (this command's output).",

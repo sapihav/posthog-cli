@@ -50,6 +50,7 @@ posthog experiments list|get|results|launch|pause|end
 posthog insights list|get
 posthog dashboards list|get
 posthog query "<hogql>"
+posthog docs-search "<question>"
 posthog schema
 ```
 
@@ -65,6 +66,10 @@ posthog flags enable new-feature
 
 # Run a HogQL query
 posthog query "SELECT event, count() FROM events GROUP BY event LIMIT 10" --pretty
+
+# Search PostHog docs (requires INKEEP_API_KEY — separate from POSTHOG_API_KEY,
+# wraps the same Inkeep endpoint the upstream PostHog MCP uses)
+INKEEP_API_KEY=ink_... posthog docs-search "how do feature flag overrides work?" --pretty
 
 # Pipe JSON to jq
 posthog flags list | jq '.[].key'

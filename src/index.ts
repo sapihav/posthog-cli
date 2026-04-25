@@ -7,6 +7,7 @@ import { registerExperimentsCommand } from "./commands/experiments.js";
 import { registerInsightsCommand } from "./commands/insights.js";
 import { registerDashboardsCommand } from "./commands/dashboards.js";
 import { registerQueryCommand } from "./commands/query.js";
+import { registerDocsSearchCommand } from "./commands/docs-search.js";
 import { registerLoginCommand } from "./commands/login.js";
 import {
   registerSchemaCommand,
@@ -57,6 +58,7 @@ registerExperimentsCommand(program);
 registerInsightsCommand(program);
 registerDashboardsCommand(program);
 registerQueryCommand(program);
+registerDocsSearchCommand(program);
 registerSchemaCommand(program);
 
 // Intercept `--help --json` before commander runs its own help handler.

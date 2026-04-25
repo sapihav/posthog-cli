@@ -1,6 +1,6 @@
 # PARITY — posthog-cli vs PostHog API & MCP
 
-**Last audited:** 2026-04-25 · CLI version: v0.2.0 (`posthog schema`)
+**Last audited:** 2026-04-25 · CLI version: v0.2.0+docs-search (`posthog schema`)
 
 ## Scope
 
@@ -19,9 +19,10 @@ From `posthog schema` at HEAD:
 | `insights` | `list`, `get` |
 | `dashboards` | `list`, `get` |
 | `query` | (HogQL, positional or stdin) |
+| `docs-search` | (positional or stdin; wraps Inkeep) |
 | `schema` | (introspection) |
 
-Total: 8 top-level groups, 22 leaf commands.
+Total: 9 top-level groups, 23 leaf commands.
 
 ## Capability matrix
 
@@ -55,24 +56,24 @@ Status legend: `full` · `partial` · `read-only` · `planned (Mn)` · `skipped 
 | **Notebooks** | — | skipped (out of scope) | Deferred stretch (~5 tools). |
 | **Alerts & subscriptions** | — | skipped (out of scope) | Deferred stretch (~9 tools). |
 | **Roles, org/project switching, integrations, proxies, workflows, conversations, prompts, early-access features, scheduled changes, SDK doctor, debug** | — | skipped (out of scope) | ~30 long-tail MCP tools; ROADMAP §Deferred item 6. |
-| **Docs / entity search** (`docs-search`, `entity-search`) | — | skipped (out of scope) | Cheap one-PR add per ROADMAP §Deferred item 7; ship on demand. |
+| **Docs / entity search** (`docs-search`, `entity-search`) | `docs-search` | partial | `docs-search` ships, wraps the same Inkeep `chat/completions` endpoint the upstream PostHog MCP uses (`inkeep-qa-expert` model). Requires a separate `INKEEP_API_KEY` env var because the endpoint is hosted by Inkeep, not PostHog. `entity-search` not yet shipped. |
 | **Event ingestion** (`/capture`, `/decide`, `/batch`) | — | n/a | Ingestion belongs in PostHog client SDKs, not in this management CLI. |
 | **Source maps upload** (REST `/api/projects/:id/error_tracking/symbol_sets/`) | — | skipped (out of scope) ? | Workspace `CLAUDE.md` table marks this CLI as "source maps (WIP, limited scope)" — **inaccurate**: no source-map command ships in v0.2.0 and none is on ROADMAP. Either implement or correct the workspace doc. |
 
 ## Coverage summary
 
-- Groups with **any** CLI coverage (full / partial / read-only): **8** of ~28 listed groups.
+- Groups with **any** CLI coverage (full / partial / read-only): **9** of ~28 listed groups.
 - Groups **planned** in ROADMAP M5–M14: **10**.
-- Groups explicitly **skipped (out of scope)**: **9** (plus `n/a` ingestion).
+- Groups explicitly **skipped (out of scope)**: **8** (plus `n/a` ingestion).
 
 ## Gaps worth considering
 
 Short list of expansions that would deliver the highest agent value per LoC, in rough priority order:
 
-1. **Docs / entity search** — trivial one-PR adds; lets agents resolve names without scraping.
-2. **Persons + cohorts read** (`persons get`, `cohorts list/get`) — cheap and frequently needed alongside flags.
-3. **Insights & dashboards write** (M8) — current read-only is a notable asymmetry vs flags/experiments.
-4. **HogQL `--params` + saved queries** (subset of M6) — unblocks reusable analytics in scripts.
+1. **Persons + cohorts read** (`persons get`, `cohorts list/get`) — cheap and frequently needed alongside flags.
+2. **Insights & dashboards write** (M8) — current read-only is a notable asymmetry vs flags/experiments.
+3. **HogQL `--params` + saved queries** (subset of M6) — unblocks reusable analytics in scripts.
+4. **`entity-search`** — sibling of the now-shipped `docs-search`; resolves PostHog entity names (insights/dashboards/flags) without manual `list --search` scans.
 5. **Resolve the source-maps mismatch** — either ship `posthog sourcemaps inject|upload` (the original stated scope) or remove that line from the workspace `CLAUDE.md` table.
 
 Everything else (replays, surveys, error tracking, taxonomy, LLM analytics, data warehouse, CDP, notebooks, alerts, long-tail admin) should stay deferred unless a concrete user request appears.

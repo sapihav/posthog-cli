@@ -238,6 +238,18 @@ Human-readable mirror of the per-command JSON shapes the CLI emits on stdout. Th
 - Type: object
 - Description: Raw HogQL query result from PostHog. Typically `{ results: any[][], columns: string[], types: string[] }`.
 
+## docs-search
+
+### `posthog docs-search`
+
+- Type: object
+- Description: PostHog docs answer from the Inkeep-backed search endpoint (mirrors the upstream PostHog MCP tool). Requires `INKEEP_API_KEY` env var (separate from `POSTHOG_API_KEY` — the endpoint is hosted by Inkeep, not PostHog).
+
+| Field | Type |
+|---|---|
+| query | string |
+| answer | string |
+
 ## schema
 
 ### `posthog schema`
