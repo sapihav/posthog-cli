@@ -4,6 +4,10 @@
 
 PostHog CLI — manage PostHog projects from the terminal. JSON output by default, designed for scripting and AI agent tooling.
 
+## Parity
+
+`███████░░░░░░░░░░░░░` **35%** — auth, schema, flags (full), experiments/insights/dashboards (read + control), HogQL basic, docs-search shipped. Persons, cohorts, surveys, error-tracking, taxonomy, replays, and write-side of insights/dashboards remain (M5–M14). See [PARITY.md](PARITY.md).
+
 ## Install
 
 **One-line install (recommended)** — no Node.js required:
