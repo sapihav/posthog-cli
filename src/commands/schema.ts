@@ -105,6 +105,12 @@ export const OUTPUT_SHAPES: Record<string, OutputShape> = {
     description: "Confirmation of deletion.",
     fields: { deleted: "boolean", key: "string", id: "number" },
   },
+  "flags dependents": {
+    type: "array",
+    description:
+      "Active feature flags that depend on this flag via flag-type filter properties. Empty array when nothing depends on it.",
+    fields: { id: "number", key: "string", name: "string" },
+  },
   "experiments list": {
     type: "array",
     description: "Array of experiments.",

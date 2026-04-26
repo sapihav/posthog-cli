@@ -49,7 +49,7 @@ Set `POSTHOG_CONFIG=env-only` to ignore both config files and rely purely on env
 ```
 posthog login
 posthog config set|show
-posthog flags list|get|create|update|enable|disable|delete
+posthog flags list|get|create|update|enable|disable|delete|dependents
 posthog experiments list|get|results|launch|pause|end
 posthog insights list|get
 posthog dashboards list|get

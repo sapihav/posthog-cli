@@ -124,6 +124,17 @@ Human-readable mirror of the per-command JSON shapes the CLI emits on stdout. Th
 | key | string |
 | id | number |
 
+### `posthog flags dependents`
+
+- Type: array
+- Description: Active feature flags that depend on this flag via flag-type filter properties. Empty array when nothing depends on it.
+
+| Field | Type |
+|---|---|
+| id | number |
+| key | string |
+| name | string |
+
 ## experiments
 
 ### `posthog experiments list`
