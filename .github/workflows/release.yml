@@ -1,126 +1,31 @@
 name: Release
 
-# Fires on every push to main. The prepare-release job decides whether a
-# new version is warranted (conventional-commit-driven) and, if so, bumps
-# package.json, tags the commit, and pushes both. The binary-release and
-# npm-publish jobs gate on prepare-release.outputs.should_release.
+# Tag-triggered release. Cut a release by pushing a tag from your machine:
 #
-# The tags: ['v*'] trigger is kept so a human can still cut an emergency
-# release by pushing a tag by hand — prepare-release detects and passes
-# that version through without re-bumping.
+#   git tag v0.3.0 && git push origin v0.3.0
+#
+# CI consumes the tag and publishes to npm, GitHub Releases, and the brew tap.
+# CI never writes back to main — branch protection on main stays intact.
+# Matches the workspace pattern used by exa-cli, perplexity-cli, tavily-cli,
+# craft-cli (see `../CLI-tools-ROADMAP.md` and the sibling `release.yml` files).
+#
+# package.json's `version` field is treated as a placeholder. The git tag is
+# the source of truth: each publish job re-syncs package.json to the tag in
+# its own working tree (`npm version --no-git-tag-version`) before building,
+# so no commit ever lands on main from CI.
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  # Single source of truth for the release version. Exits early
-  # (should_release=false) when no feat/fix/breaking commit has landed
-  # since the last tag, so chore/docs/ci-only merges do not spam npm.
-  prepare-release:
-    runs-on: ubuntu-latest
-    outputs:
-      should_release: ${{ steps.decide.outputs.should_release }}
-      version: ${{ steps.decide.outputs.version }}
-    steps:
-      - name: Checkout (full history for tag discovery)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Decide release + next version
-        id: decide
-        run: |
-          set -euo pipefail
-
-          # Path 1: hand-pushed tag — pass the tag version through verbatim.
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            v="${GITHUB_REF_NAME#v}"
-            echo "Triggered by tag push v$v — passing through."
-            {
-              echo "should_release=true"
-              echo "version=$v"
-              echo "needs_bump=false"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Path 2: push to main — scan commits for a conventional bump signal.
-          last_tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
-          if [ -n "$last_tag" ]; then
-            echo "Last release tag: $last_tag"
-            range="$last_tag..HEAD"
-          else
-            echo "No previous v* tag; scanning full history."
-            range=""
-          fi
-
-          # Drop release-bump commits so a previous chore(release): does not itself count.
-          subjects=$(git log --format=%s --no-merges $range | grep -v '^chore(release):' || true)
-          echo "---- commit subjects considered ----"
-          echo "$subjects"
-          echo "------------------------------------"
-
-          bump=""
-          if echo "$subjects" | grep -qE '(^|\n)[a-z]+(\([^)]+\))?!:|BREAKING CHANGE:'; then
-            bump="major"
-          elif echo "$subjects" | grep -qE '(^|\n)feat(\([^)]+\))?:'; then
-            bump="minor"
-          elif echo "$subjects" | grep -qE '(^|\n)fix(\([^)]+\))?:'; then
-            bump="patch"
-          fi
-
-          if [ -z "$bump" ]; then
-            echo "No feat/fix/breaking commits since ${last_tag:-<root>} — skipping release."
-            echo "should_release=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          current=$(node -p "require('./package.json').version")
-          next=$(BUMP="$bump" CURRENT="$current" node -e '
-            const [a, b, c] = process.env.CURRENT.split(".").map(Number);
-            const bump = process.env.BUMP;
-            if (bump === "major") console.log([a + 1, 0, 0].join("."));
-            else if (bump === "minor") console.log([a, b + 1, 0].join("."));
-            else console.log([a, b, c + 1].join("."));
-          ')
-          echo "Bumping $bump: $current -> $next"
-          {
-            echo "should_release=true"
-            echo "version=$next"
-            echo "needs_bump=true"
-          } >> "$GITHUB_OUTPUT"
-
-      # Bump package.json, commit, tag, push. GITHUB_TOKEN pushes do not
-      # re-trigger this workflow by default, so no infinite loop. We push
-      # main before the tag so the tagged commit is always reachable.
-      - name: Bump, commit, tag, push
-        if: steps.decide.outputs.needs_bump == 'true'
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          npm version "${{ steps.decide.outputs.version }}" --no-git-tag-version --allow-same-version
-          git add package.json package-lock.json
-          git commit -m "chore(release): v${{ steps.decide.outputs.version }} [skip ci]"
-          git tag "v${{ steps.decide.outputs.version }}"
-          git push origin main
-          git push origin "v${{ steps.decide.outputs.version }}"
-
   # Compile TypeScript to a single standalone binary via Bun, per target.
   # Archives + SHA-256 checksums are uploaded to the GitHub release so the
   # curl one-liner in install.sh works without a Node runtime.
   binary-release:
-    needs: prepare-release
-    if: needs.prepare-release.outputs.should_release == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -137,13 +42,18 @@ jobs:
     steps:
       - name: Checkout at release tag
         uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.prepare-release.outputs.version }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Sync package.json version to tag
+        run: |
+          set -euo pipefail
+          v="${GITHUB_REF_NAME#v}"
+          echo "Syncing package.json version → $v"
+          npm version "$v" --no-git-tag-version --allow-same-version
 
       - name: Install dependencies
         run: bun install --frozen-lockfile || bun install
@@ -163,7 +73,7 @@ jobs:
       - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.prepare-release.outputs.version }}
+          tag_name: ${{ github.ref_name }}
           files: |
             ${{ matrix.archive_name }}.tar.gz
             ${{ matrix.archive_name }}.tar.gz.sha256
@@ -173,8 +83,6 @@ jobs:
   # One-time setup: npm package settings → Publishing access → GitHub Actions
   # trusted publisher for sapihav/posthog-cli / .github/workflows/release.yml.
   npm-publish:
-    needs: prepare-release
-    if: needs.prepare-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -182,14 +90,19 @@ jobs:
     steps:
       - name: Checkout at release tag
         uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.prepare-release.outputs.version }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+
+      - name: Sync package.json version to tag
+        run: |
+          set -euo pipefail
+          v="${GITHUB_REF_NAME#v}"
+          echo "Syncing package.json version → $v"
+          npm version "$v" --no-git-tag-version --allow-same-version
 
       - name: Install + build
         run: |
@@ -208,13 +121,16 @@ jobs:
   #
   # Install after publish: `brew install sapihav/tap/posthog`.
   homebrew-publish:
-    needs: [prepare-release, binary-release]
-    if: needs.prepare-release.outputs.should_release == 'true'
+    needs: [binary-release]
     runs-on: ubuntu-latest
     steps:
+      - name: Compute version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Download SHA256 sums from the new release
         env:
-          VERSION: ${{ needs.prepare-release.outputs.version }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
           base="https://github.com/sapihav/posthog-cli/releases/download/v${VERSION}"
@@ -246,7 +162,7 @@ jobs:
 
       - name: Template Formula/posthog.rb
         env:
-          VERSION: ${{ needs.prepare-release.outputs.version }}
+          VERSION: ${{ steps.ver.outputs.version }}
           SHA_DARWIN_ARM64: ${{ steps.shas.outputs.darwin_arm64 }}
           SHA_DARWIN_X86_64: ${{ steps.shas.outputs.darwin_x86_64 }}
           SHA_LINUX_ARM64: ${{ steps.shas.outputs.linux_arm64 }}
@@ -307,7 +223,7 @@ jobs:
       - name: Push formula to sapihav/homebrew-tap
         env:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-          VERSION: ${{ needs.prepare-release.outputs.version }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
           if [ -z "${TAP_GITHUB_TOKEN:-}" ]; then
