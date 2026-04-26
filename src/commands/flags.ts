@@ -186,4 +186,33 @@ export function registerFlagsCommand(program: Command): void {
         outputError(e as Error);
       }
     });
+
+  cmd
+    .command("dependents <key-or-id>")
+    .description(
+      "List active flags that depend on this flag (pass `-` to read from stdin)"
+    )
+    .action(async (keyOrId: string) => {
+      try {
+        const client = getClient();
+        const flag = await resolveFlag(client, resolveStdinArg(keyOrId));
+        const dependents = await client.get<DependentFlag[]>(
+          "feature_flags/",
+          `${flag.id}/dependent_flags`
+        );
+        outputJson(dependents, out());
+      } catch (e) {
+        outputError(e as Error);
+      }
+    });
+}
+
+/**
+ * Shape returned by `GET /api/projects/:id/feature_flags/:id/dependent_flags/`.
+ * Confirmed against `posthog/api/feature_flag.py::dependent_flags`.
+ */
+interface DependentFlag {
+  id: number;
+  key: string;
+  name: string;
 }

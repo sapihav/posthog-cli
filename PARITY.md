@@ -1,6 +1,6 @@
 # PARITY — posthog-cli vs PostHog API & MCP
 
-**Last audited:** 2026-04-25 · CLI version: v0.2.0 (`posthog schema`)
+**Last audited:** 2026-04-26 · CLI version: v0.2.0 (`posthog schema`)
 
 ## Scope
 
@@ -14,14 +14,14 @@ From `posthog schema` at HEAD:
 |---|---|
 | `login` | (interactive) |
 | `config` | `set`, `show` |
-| `flags` | `list`, `get`, `create`, `update`, `enable`, `disable`, `delete` |
+| `flags` | `list`, `get`, `create`, `update`, `enable`, `disable`, `delete`, `dependents` |
 | `experiments` | `list`, `get`, `results`, `launch`, `pause`, `end` |
 | `insights` | `list`, `get` |
 | `dashboards` | `list`, `get` |
 | `query` | (HogQL, positional or stdin) |
 | `schema` | (introspection) |
 
-Total: 8 top-level groups, 22 leaf commands.
+Total: 8 top-level groups, 23 leaf commands.
 
 ## Capability matrix
 
@@ -33,7 +33,7 @@ Status legend: `full` · `partial` · `read-only` · `planned (Mn)` · `skipped 
 | **Self-description / schema** | `schema`, `--help --json` | full | Workspace-standard agent contract; no MCP equivalent. |
 | **Feature flags — read** (list, get, definition) | `flags list/get` | full | |
 | **Feature flags — write** (CRUD + enable/disable) | `flags create/update/enable/disable/delete` | full | Mirrors core MCP flag tools. |
-| **Feature flags — advanced** (copy, dependents, status, blast-radius, evaluation-reasons, scheduled changes) | — | planned (M5) | ~10 MCP tools; ROADMAP.md §M5. |
+| **Feature flags — advanced** (copy, dependents, status, blast-radius, evaluation-reasons, scheduled changes) | `flags dependents` | partial | Shipped: `dependents` (wraps `feature-flags-dependent-flags-retrieve`). Remaining: `copy`, `status`, `blast-radius`, `evaluation-reasons`, `scheduled` CRUD — planned (M5); ROADMAP.md §M5. |
 | **Experiments — read & control plane** (list, get, results, launch, pause, end) | `experiments list/get/results/launch/pause/end` | partial | No create/update/delete/archive/reset/resume/ship-variant/duplicate yet. |
 | **Experiments — full CRUD** (create, update, delete, archive, reset, resume, ship-variant, duplicate, stats, timeseries) | — | planned (M7) | ~14 MCP tools. |
 | **Insights — read** (list, get) | `insights list/get` | read-only | |
@@ -61,8 +61,8 @@ Status legend: `full` · `partial` · `read-only` · `planned (Mn)` · `skipped 
 
 ## Coverage summary
 
-- Groups with **any** CLI coverage (full / partial / read-only): **8** of ~28 listed groups.
-- Groups **planned** in ROADMAP M5–M14: **10**.
+- Groups with **any** CLI coverage (full / partial / read-only): **9** of ~28 listed groups.
+- Groups **planned** in ROADMAP M5–M14: **10** (M5 now `partial` — 1 of ~6 sub-tools shipped).
 - Groups explicitly **skipped (out of scope)**: **9** (plus `n/a` ingestion).
 
 ## Gaps worth considering
