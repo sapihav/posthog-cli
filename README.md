@@ -6,7 +6,7 @@ PostHog CLI — manage PostHog projects from the terminal. JSON output by defaul
 
 ## Parity
 
-`███████░░░░░░░░░░░░░` **35%** — auth, schema, flags (full), experiments/insights/dashboards (read + control), HogQL basic, docs-search shipped. Persons, cohorts, surveys, error-tracking, taxonomy, replays, and write-side of insights/dashboards remain (M5–M14). See [PARITY.md](PARITY.md).
+`██████░░░░░░░░░░░░░░` **30%** — auth, schema, flags (full), experiments/insights/dashboards (read + control), HogQL basic shipped. Persons, cohorts, surveys, error-tracking, taxonomy, replays, and write-side of insights/dashboards remain (M5–M14). See [PARITY.md](PARITY.md). No third-party tool dependencies.
 
 ## Install
 
