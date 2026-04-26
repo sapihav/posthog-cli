@@ -1,6 +1,8 @@
 # PARITY — posthog-cli vs PostHog API & MCP
 
-**Last audited:** 2026-04-26 · CLI version: v0.2.0 (`posthog schema`)
+**Last audited:** 2026-04-26 · CLI version: HEAD `package.json` v0.2.0; **published npm `posthog-cli@latest` is v0.1.6** — release pipeline lags HEAD by one minor.
+
+**Published-artifact smoke (2026-04-26):** `npm install -g posthog-cli@latest` → v0.1.6. `posthog --help`, `posthog --version`, `posthog schema` all pass. Workspace-contract gap surfaced: `posthog version` (subcommand) is rejected with `unknown command 'version'` — see "Workspace contract gaps" below.
 
 ## Scope
 
@@ -59,6 +61,15 @@ Status legend: `full` · `partial` · `read-only` · `planned (Mn)` · `skipped 
 | **Event ingestion** (`/capture`, `/decide`, `/batch`) | — | n/a | Ingestion belongs in PostHog client SDKs, not in this management CLI. |
 | **Source maps upload** (REST `/api/projects/:id/error_tracking/symbol_sets/`) | — | skipped (out of scope) ? | Workspace `CLAUDE.md` table marks this CLI as "source maps (WIP, limited scope)" — **inaccurate**: no source-map command ships in v0.2.0 and none is on ROADMAP. Either implement or correct the workspace doc. |
 
+## Workspace contract gaps
+
+These aren't API/MCP-parity rows but contract drift vs the rest of `~/src/clis` — surfaced by the 2026-04-26 published-artifact smoke.
+
+| Gap | Status | Notes |
+|---|---|---|
+| `posthog version` (subcommand) | missing | Sibling Go CLIs (`exa`, `tavily`, `perplexity`, `craft`) all ship `<bin> version` as a subcommand returning JSON. `posthog` only accepts `--version` (flag) and prints a bare string `0.1.6`. Worth a one-PR add: a `version` subcommand emitting the standard envelope (`{schema_version, provider, command, version}`). |
+| Published artifact lag | ongoing | npm `posthog-cli@latest` is v0.1.6 while HEAD `package.json` declares v0.2.0. Either bump-and-publish or align HEAD to the released version; current state means `posthog schema` from a fresh `npm install -g` does not reflect what this PARITY doc describes. |
+
 ## Coverage summary
 
 - Groups with **any** CLI coverage (full / partial / read-only): **9** of ~28 listed groups.
@@ -74,5 +85,6 @@ Short list of expansions that would deliver the highest agent value per LoC, in 
 3. **Insights & dashboards write** (M8) — current read-only is a notable asymmetry vs flags/experiments.
 4. **HogQL `--params` + saved queries** (subset of M6) — unblocks reusable analytics in scripts.
 5. **Resolve the source-maps mismatch** — either ship `posthog sourcemaps inject|upload` (the original stated scope) or remove that line from the workspace `CLAUDE.md` table.
+6. **Add `posthog version` subcommand + cut a v0.2.0 npm release** — closes the workspace-contract gap and aligns the published artifact with HEAD. Trivial PR.
 
 Everything else (replays, surveys, error tracking, taxonomy, LLM analytics, data warehouse, CDP, notebooks, alerts, long-tail admin) should stay deferred unless a concrete user request appears.
