@@ -97,6 +97,17 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      # Node 22 ships with npm 10.x. npm Trusted Publishers (OIDC) requires
+      # npm >= 11.5.1 — without it, sigstore provenance still signs (the
+      # GitHub OIDC JWT is recognised) but the publish PUT goes out
+      # unauthenticated and the registry replies with the misleading
+      # `404 'posthog-cli@X' is not in this registry`. Upgrading the npm
+      # CLI here is the documented fix.
+      - name: Upgrade npm to support Trusted Publishers OIDC
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - name: Sync package.json version to tag
         run: |
           set -euo pipefail
