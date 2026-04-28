@@ -119,22 +119,22 @@ jobs:
       - name: Checkout at release tag
         uses: actions/checkout@v4
 
+      # Node 24 ships with npm 11.x. We need npm >= 11.5.1 because npm
+      # Trusted Publishers (OIDC) requires it — with older npm, sigstore
+      # provenance signs (the GitHub OIDC JWT is recognised) but the
+      # publish PUT goes out unauthenticated and the registry replies with
+      # the misleading `404 'posthog-cli@X' is not in this registry`.
+      # We intentionally use the bundled npm rather than self-upgrading
+      # via `npm install -g npm@latest`: the 10→11 self-upgrade has a
+      # known bug that leaves npm with a missing `promise-retry` module.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
-      # Node 22 ships with npm 10.x. npm Trusted Publishers (OIDC) requires
-      # npm >= 11.5.1 — without it, sigstore provenance still signs (the
-      # GitHub OIDC JWT is recognised) but the publish PUT goes out
-      # unauthenticated and the registry replies with the misleading
-      # `404 'posthog-cli@X' is not in this registry`. Upgrading the npm
-      # CLI here is the documented fix.
-      - name: Upgrade npm to support Trusted Publishers OIDC
-        run: |
-          npm install -g npm@latest
-          npm --version
+      - name: Show npm version (must be >= 11.5.1 for OIDC publish)
+        run: npm --version
 
       - name: Sync package.json version to tag
         run: |
