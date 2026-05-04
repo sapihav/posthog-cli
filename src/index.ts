@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+import pkg from "../package.json";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerFlagsCommand } from "./commands/flags.js";
 import { registerExperimentsCommand } from "./commands/experiments.js";
@@ -15,12 +16,16 @@ import {
 
 const program = new Command();
 
+// Read version from package.json so the tag-triggered release workflow's
+// `npm version --no-git-tag-version` propagates into the binary at build
+// time. Previously this was hardcoded to "0.2.0", which shipped stale
+// once the workflow stopped committing version bumps to source.
 program
   .name("posthog")
   .description(
     "Community-built CLI for PostHog. Not affiliated with or endorsed by PostHog Inc. — manage PostHog projects from the terminal."
   )
-  .version("0.2.0")
+  .version(pkg.version)
   .option("--pretty", "Pretty-print JSON output")
   .option("--json", "Emit machine-readable JSON (use with --help to print the schema)")
   .option(
